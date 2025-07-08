@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowRight, Search, BookOpen, Moon, Sun } from 'lucide-react';
+import { ArrowRight, Search, BookOpen, Moon, Sun, Loader2 } from 'lucide-react';
+import { getSurahs, getSurahVerses, type Surah, type Verse } from '@/lib/quran-api';
+import { useToast } from '@/hooks/use-toast';
 
 interface QuranPageProps {
   onPageChange?: (page: string) => void;
@@ -11,43 +13,59 @@ interface QuranPageProps {
 export default function QuranPage({ onPageChange }: QuranPageProps) {
   const [darkMode, setDarkMode] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [surahs, setSurahs] = useState<Surah[]>([]);
+  const [selectedSurah, setSelectedSurah] = useState<Surah | null>(null);
+  const [verses, setVerses] = useState<Verse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [versesLoading, setVersesLoading] = useState(false);
+  const { toast } = useToast();
 
-  const surahs = [
-    { number: 1, name: 'الفاتحة', nameEn: 'Al-Fatihah', verses: 7, type: 'مكية' },
-    { number: 2, name: 'البقرة', nameEn: 'Al-Baqarah', verses: 286, type: 'مدنية' },
-    { number: 3, name: 'آل عمران', nameEn: 'Ali Imran', verses: 200, type: 'مدنية' },
-    { number: 4, name: 'النساء', nameEn: 'An-Nisa', verses: 176, type: 'مدنية' },
-    { number: 5, name: 'المائدة', nameEn: 'Al-Maidah', verses: 120, type: 'مدنية' },
-    { number: 6, name: 'الأنعام', nameEn: 'Al-Anaam', verses: 165, type: 'مكية' },
-    { number: 7, name: 'الأعراف', nameEn: 'Al-Araf', verses: 206, type: 'مكية' },
-    { number: 8, name: 'الأنفال', nameEn: 'Al-Anfal', verses: 75, type: 'مدنية' },
-    { number: 9, name: 'التوبة', nameEn: 'At-Tawbah', verses: 129, type: 'مدنية' },
-    { number: 10, name: 'يونس', nameEn: 'Yunus', verses: 109, type: 'مكية' },
-    { number: 11, name: 'هود', nameEn: 'Hud', verses: 123, type: 'مكية' },
-    { number: 12, name: 'يوسف', nameEn: 'Yusuf', verses: 111, type: 'مكية' },
-    { number: 13, name: 'الرعد', nameEn: 'Ar-Rad', verses: 43, type: 'مدنية' },
-    { number: 14, name: 'إبراهيم', nameEn: 'Ibrahim', verses: 52, type: 'مكية' },
-    { number: 15, name: 'الحجر', nameEn: 'Al-Hijr', verses: 99, type: 'مكية' },
-    { number: 16, name: 'النحل', nameEn: 'An-Nahl', verses: 128, type: 'مكية' },
-    { number: 17, name: 'الإسراء', nameEn: 'Al-Isra', verses: 111, type: 'مكية' },
-    { number: 18, name: 'الكهف', nameEn: 'Al-Kahf', verses: 110, type: 'مكية' },
-    { number: 19, name: 'مريم', nameEn: 'Maryam', verses: 98, type: 'مكية' },
-    { number: 20, name: 'طه', nameEn: 'Ta-Ha', verses: 135, type: 'مكية' },
-    { number: 21, name: 'الأنبياء', nameEn: 'Al-Anbiya', verses: 112, type: 'مكية' },
-    { number: 22, name: 'الحج', nameEn: 'Al-Hajj', verses: 78, type: 'مدنية' },
-    { number: 23, name: 'المؤمنون', nameEn: 'Al-Muminun', verses: 118, type: 'مكية' },
-    { number: 24, name: 'النور', nameEn: 'An-Nur', verses: 64, type: 'مدنية' },
-    { number: 25, name: 'الفرقان', nameEn: 'Al-Furqan', verses: 77, type: 'مكية' },
-    { number: 26, name: 'الشعراء', nameEn: 'Ash-Shuara', verses: 227, type: 'مكية' },
-    { number: 27, name: 'النمل', nameEn: 'An-Naml', verses: 93, type: 'مكية' },
-    { number: 28, name: 'القصص', nameEn: 'Al-Qasas', verses: 88, type: 'مكية' },
-    { number: 29, name: 'العنكبوت', nameEn: 'Al-Ankabut', verses: 69, type: 'مكية' },
-    { number: 30, name: 'الروم', nameEn: 'Ar-Rum', verses: 60, type: 'مكية' }
-  ];
+  useEffect(() => {
+    loadSurahs();
+  }, []);
+
+  const loadSurahs = async () => {
+    try {
+      setLoading(true);
+      const surahsData = await getSurahs();
+      setSurahs(surahsData);
+    } catch (error) {
+      toast({
+        title: 'خطأ',
+        description: 'حدث خطأ في تحميل السور',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadSurahVerses = async (surah: Surah) => {
+    try {
+      setVersesLoading(true);
+      setSelectedSurah(surah);
+      const versesData = await getSurahVerses(surah.id);
+      setVerses(versesData);
+    } catch (error) {
+      toast({
+        title: 'خطأ',
+        description: 'حدث خطأ في تحميل آيات السورة',
+        variant: 'destructive'
+      });
+    } finally {
+      setVersesLoading(false);
+    }
+  };
+
+  const goBackToSurahs = () => {
+    setSelectedSurah(null);
+    setVerses([]);
+  };
 
   const filteredSurahs = surahs.filter(surah => 
-    surah.name.includes(searchTerm) || 
-    surah.nameEn.toLowerCase().includes(searchTerm.toLowerCase())
+    surah.name_arabic.includes(searchTerm) || 
+    surah.name_simple.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    surah.translated_name.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -97,49 +115,121 @@ export default function QuranPage({ onPageChange }: QuranPageProps) {
         </CardContent>
       </Card>
 
-      {/* قائمة السور */}
-      <div className="space-y-3">
-        {filteredSurahs.map((surah) => (
-          <Card key={surah.number} className="islamic-card hover-lift cursor-pointer">
-            <CardContent className="p-4">
+      {loading ? (
+        <div className="flex justify-center items-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="mr-2 text-muted-foreground">جاري تحميل السور...</span>
+        </div>
+      ) : selectedSurah ? (
+        /* عرض آيات السورة */
+        <div className="space-y-4">
+          <Card className="islamic-card">
+            <CardHeader>
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gradient-primary rounded-full flex items-center justify-center">
-                    <span className="text-white font-bold text-sm">{surah.number}</span>
-                  </div>
-                  <div className="text-right">
-                    <h3 className="font-bold text-lg font-arabic">{surah.name}</h3>
-                    <p className="text-sm text-muted-foreground">{surah.nameEn}</p>
-                  </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={goBackToSurahs}
+                  className="gap-2"
+                >
+                  <ArrowRight className="h-4 w-4" />
+                  العودة للسور
+                </Button>
+                <div className="text-center">
+                  <CardTitle className="text-xl font-arabic-display">
+                    سورة {selectedSurah.name_arabic}
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedSurah.verses_count} آية - {selectedSurah.revelation_place === 'makkah' ? 'مكية' : 'مدنية'}
+                  </p>
                 </div>
-                
-                <div className="text-left">
-                  <div className="flex items-center gap-2 mb-1">
-                    <BookOpen className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">{surah.verses} آية</span>
-                  </div>
-                  <span className={`text-xs px-2 py-1 rounded-full ${
-                    surah.type === 'مكية' 
-                      ? 'bg-islamic-green/20 text-islamic-green'
-                      : 'bg-islamic-blue/20 text-islamic-blue'
-                  }`}>
-                    {surah.type}
-                  </span>
-                </div>
+                <div className="w-20"></div>
               </div>
-            </CardContent>
+            </CardHeader>
           </Card>
-        ))}
-      </div>
 
-      {/* رسالة عدم وجود نتائج */}
-      {filteredSurahs.length === 0 && (
-        <Card className="islamic-card">
-          <CardContent className="p-8 text-center">
-            <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">لم يتم العثور على سور تطابق البحث</p>
-          </CardContent>
-        </Card>
+          {versesLoading ? (
+            <div className="flex justify-center items-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="mr-2 text-muted-foreground">جاري تحميل الآيات...</span>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {verses.map((verse) => (
+                <Card key={verse.id} className="islamic-card">
+                  <CardContent className="p-6">
+                    <div className="space-y-4">
+                      <div className="flex items-start gap-4">
+                        <div className="w-8 h-8 bg-gradient-primary rounded-full flex items-center justify-center flex-shrink-0">
+                          <span className="text-white text-sm font-bold">{verse.verse_number}</span>
+                        </div>
+                        <div className="flex-1 arabic-text text-lg leading-relaxed">
+                          {verse.text_uthmani}
+                        </div>
+                      </div>
+                      {verse.translations && verse.translations.length > 0 && (
+                        <div className="border-t border-border pt-4">
+                          <p className="text-sm text-muted-foreground italic">
+                            {verse.translations[0].text}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        /* قائمة السور */
+        <div className="space-y-3">
+          {filteredSurahs.map((surah) => (
+            <Card 
+              key={surah.id} 
+              className="islamic-card hover-lift cursor-pointer"
+              onClick={() => loadSurahVerses(surah)}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-gradient-primary rounded-full flex items-center justify-center">
+                      <span className="text-white font-bold text-sm">{surah.id}</span>
+                    </div>
+                    <div className="text-right">
+                      <h3 className="font-bold text-lg font-arabic">{surah.name_arabic}</h3>
+                      <p className="text-sm text-muted-foreground">{surah.translated_name.name}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="text-left">
+                    <div className="flex items-center gap-2 mb-1">
+                      <BookOpen className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">{surah.verses_count} آية</span>
+                    </div>
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      surah.revelation_place === 'makkah' 
+                        ? 'bg-islamic-green/20 text-islamic-green'
+                        : 'bg-islamic-blue/20 text-islamic-blue'
+                    }`}>
+                      {surah.revelation_place === 'makkah' ? 'مكية' : 'مدنية'}
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+
+          {/* رسالة عدم وجود نتائج */}
+          {filteredSurahs.length === 0 && !loading && (
+            <Card className="islamic-card">
+              <CardContent className="p-8 text-center">
+                <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">لم يتم العثور على سور تطابق البحث</p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       )}
     </div>
   );
