@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Clock, MapPin, BookOpen, Heart, Star } from 'lucide-react';
+import { Clock, MapPin, BookOpen, Heart, Star, ArrowRight } from 'lucide-react';
 
 interface HomePageProps {
   onPageChange?: (page: string) => void;
@@ -160,27 +160,33 @@ export default function HomePage({ onPageChange }: HomePageProps) {
         </CardContent>
       </Card>
 
-      {/* الأقسام السريعة */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {quickActions.map((action) => (
-          <Card
-            key={action.id}
-            className="islamic-card hover-lift cursor-pointer group"
-            onClick={() => handleCardClick(action.id)}
-          >
-            <CardContent className="p-6">
-              <div className="flex items-center gap-3 mb-3">
-                <div className={`w-12 h-12 rounded-full islamic-gradient flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
-                  <action.icon className="h-6 w-6 text-white" />
+      {/* الأقسام السريعة - تصميم جديد */}
+      <div className="space-y-4">
+        <h2 className="text-xl font-bold section-header text-center">الأقسام الرئيسية</h2>
+        <div className="grid grid-cols-1 gap-4">
+          {quickActions.map((action) => (
+            <div
+              key={action.id}
+              className="mobile-card cursor-pointer group p-4"
+              onClick={() => handleCardClick(action.id)}
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-2xl islamic-gradient flex items-center justify-center group-hover:scale-105 transition-all duration-300 shadow-lg">
+                  <action.icon className="h-8 w-8 text-white" />
                 </div>
-                <div>
-                  <h3 className="font-bold font-arabic">{action.title}</h3>
-                  <p className="text-sm text-muted-foreground">{action.description}</p>
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold font-arabic text-foreground group-hover:text-primary transition-colors">
+                    {action.title}
+                  </h3>
+                  <p className="text-sm text-muted-foreground mt-1">{action.description}</p>
+                </div>
+                <div className="w-8 h-8 rounded-full bg-muted/50 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                  <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        ))}
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* آية اليوم */}

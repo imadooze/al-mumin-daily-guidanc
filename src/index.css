@@ -195,6 +195,42 @@
     backdrop-filter: blur(20px);
     border: 1px solid hsl(var(--border));
     box-shadow: var(--shadow-card);
+    border-radius: 16px;
+  }
+  
+  /* تصميم تطبيق جوال */
+  .mobile-card {
+    background: var(--gradient-card);
+    backdrop-filter: blur(20px);
+    border: none;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+    border-radius: 20px;
+    transition: all 0.3s ease;
+  }
+  
+  .mobile-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+  }
+  
+  .mobile-button {
+    border-radius: 16px;
+    padding: 16px 24px;
+    font-weight: 600;
+    border: none;
+    transition: all 0.3s ease;
+  }
+  
+  .mobile-button:hover {
+    transform: translateY(-2px);
+  }
+  
+  .section-header {
+    background: linear-gradient(135deg, hsl(var(--islamic-green)) 0%, hsl(var(--islamic-blue)) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 800;
   }
   
   .islamic-glass {
