@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Clock, MapPin, BookOpen, Heart, Star, ArrowRight, Compass, ChevronRight, Sun, Moon, Sunrise } from 'lucide-react';
+import { Clock, MapPin, BookOpen, Heart, Star, ArrowRight, Compass, ChevronRight, Sun, Moon, Sunrise, Cloud, Thermometer, RefreshCw, Settings } from 'lucide-react';
 
 interface HomePageProps {
   onPageChange?: (page: string) => void;
@@ -10,11 +10,38 @@ interface HomePageProps {
 
 export default function HomePage({ onPageChange }: HomePageProps) {
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [location, setLocation] = useState<string>('جاري تحديد الموقع...');
+  const [weather, setWeather] = useState({ temp: '--', condition: 'جاري التحميل...' });
+  const [hijriDate, setHijriDate] = useState<string>('');
+  const [ayahIndex, setAyahIndex] = useState(0);
+  const [hadithIndex, setHadithIndex] = useState(0);
 
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
+
+    // محدد الموقع
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setLocation(`${latitude.toFixed(2)}, ${longitude.toFixed(2)}`);
+          // هنا يمكن إضافة استدعاء API للطقس
+          setWeather({ temp: '24°C', condition: 'مشمس جزئياً' });
+        },
+        () => setLocation('غير متاح')
+      );
+    }
+
+    // التاريخ الهجري (تقريبي)
+    const gregorianDate = new Date();
+    const hijriYear = gregorianDate.getFullYear() - 579;
+    const hijriMonth = [
+      'محرم', 'صفر', 'ربيع الأول', 'ربيع الثاني', 'جمادى الأولى', 'جمادى الثانية',
+      'رجب', 'شعبان', 'رمضان', 'شوال', 'ذو القعدة', 'ذو الحجة'
+    ][gregorianDate.getMonth()];
+    setHijriDate(`${gregorianDate.getDate()} ${hijriMonth} ${hijriYear} هـ`);
 
     return () => clearInterval(timer);
   }, []);
@@ -40,74 +67,61 @@ export default function HomePage({ onPageChange }: HomePageProps) {
   const currentPrayer = prayerTimes.find(p => p.current);
   const nextPrayer = prayerTimes.find(p => !p.passed && !p.current);
 
-  // آية اليوم
-  const ayahOfDay = {
-    text: "وَاصْبِرْ نَفْسَكَ مَعَ الَّذِينَ يَدْعُونَ رَبَّهُم بِالْغَدَاةِ وَالْعَشِيِّ يُرِيدُونَ وَجْهَهُ",
-    reference: "سورة الكهف - الآية 28",
-    translation: "And keep yourself patient with those who call upon their Lord morning and evening, seeking His countenance."
-  };
-
-  // حديث اليوم
-  const hadithOfDay = {
-    text: "قال رسول الله صلى الله عليه وسلم: (إنما الأعمال بالنيات، وإنما لكل امرئ ما نوى، فمن كانت هجرته إلى الله ورسوله فهجرته إلى الله ورسوله، ومن كانت هجرته لدنيا يصيبها أو امرأة ينكحها فهجرته إلى ما هاجر إليه)",
-    reference: "صحيح البخاري ومسلم",
-    narrator: "عن أمير المؤمنين أبي حفص عمر بن الخطاب رضي الله عنه"
-  };
-
-  const quickActions = [
+  // آيات متعددة
+  const verses = [
     {
-      id: 'quran',
-      title: 'القرآن الكريم',
-      description: 'اقرأ القرآن الكريم كاملاً',
-      icon: BookOpen,
-      gradient: 'islamic-gradient',
-      stats: '114 سورة'
+      text: "وَاصْبِرْ نَفْسَكَ مَعَ الَّذِينَ يَدْعُونَ رَبَّهُم بِالْغَدَاةِ وَالْعَشِيِّ يُرِيدُونَ وَجْهَهُ",
+      reference: "سورة الكهف - الآية 28",
+      translation: "And keep yourself patient with those who call upon their Lord morning and evening, seeking His countenance.",
+      tafsir: "تحث هذه الآية على الصبر والصحبة الصالحة مع الذين يذكرون الله في الصباح والمساء"
     },
     {
-      id: 'prayer-times',
-      title: 'أوقات الصلاة',
-      description: 'مواقيت الصلاة والقبلة',
-      icon: Clock,
-      gradient: 'islamic-gradient-secondary',
-      stats: 'موقعك الحالي'
+      text: "وَبَشِّرِ الصَّابِرِينَ * الَّذِينَ إِذَا أَصَابَتْهُم مُّصِيبَةٌ قَالُوا إِنَّا لِلَّهِ وَإِنَّا إِلَيْهِ رَاجِعُونَ",
+      reference: "سورة البقرة - الآيتان 155-156",
+      translation: "And give good tidings to the patient, Who, when disaster strikes them, say, 'Indeed we belong to Allah, and indeed to Him we will return.'",
+      tafsir: "بشارة للصابرين الذين يسترجعون عند المصائب ويتذكرون أنهم ملك لله وإليه راجعون"
     },
     {
-      id: 'azkar',
-      title: 'الأذكار والأدعية',
-      description: 'أذكار الصباح والمساء والأدعية',
-      icon: Heart,
-      gradient: 'islamic-gradient-accent',
-      stats: 'صباح ومساء'
-    },
-    {
-      id: 'qibla',
-      title: 'اتجاه القبلة',
-      description: 'تحديد اتجاه القبلة بدقة',
-      icon: Compass,
-      gradient: 'islamic-gradient',
-      stats: 'GPS متقدم'
-    },
-    {
-      id: 'names',
-      title: 'أسماء الله الحسنى',
-      description: 'الأسماء الحسنى مع المعاني',
-      icon: Star,
-      gradient: 'islamic-gradient-secondary',
-      stats: '99 اسم'
-    },
-    {
-      id: 'hadith',
-      title: 'الأحاديث النبوية',
-      description: 'أحاديث صحيحة مختارة',
-      icon: BookOpen,
-      gradient: 'islamic-gradient-accent',
-      stats: 'أحاديث صحيحة'
+      text: "وَمَن يَتَّقِ اللَّهَ يَجْعَل لَّهُ مَخْرَجًا * وَيَرْزُقْهُ مِنْ حَيْثُ لَا يَحْتَسِبُ",
+      reference: "سورة الطلاق - الآيتان 2-3",
+      translation: "And whoever fears Allah - He will make for him a way out. And will provide for him from where he does not expect.",
+      tafsir: "وعد من الله للمتقين بأن يجعل لهم مخرجاً من كل ضيق ويرزقهم من حيث لا يحتسبون"
     }
   ];
 
-  const handleCardClick = (pageId: string) => {
+  // أحاديث متعددة
+  const hadiths = [
+    {
+      text: "قال رسول الله صلى الله عليه وسلم: (إنما الأعمال بالنيات، وإنما لكل امرئ ما نوى)",
+      reference: "صحيح البخاري ومسلم",
+      narrator: "عن أمير المؤمنين أبي حفص عمر بن الخطاب رضي الله عنه",
+      explanation: "هذا الحديث أصل عظيم في الإسلام، يبين أن صحة العمل وفساده بحسب النية"
+    },
+    {
+      text: "قال رسول الله صلى الله عليه وسلم: (من كان يؤمن بالله واليوم الآخر فليقل خيراً أو ليصمت)",
+      reference: "صحيح البخاري ومسلم",
+      narrator: "عن أبي هريرة رضي الله عنه",
+      explanation: "يحث هذا الحديث على حفظ اللسان وعدم قول إلا الخير أو الصمت"
+    },
+    {
+      text: "قال رسول الله صلى الله عليه وسلم: (المسلم من سلم المسلمون من لسانه ويده)",
+      reference: "صحيح البخاري ومسلم",
+      narrator: "عن عبد الله بن عمرو رضي الله عنهما",
+      explanation: "تعريف المسلم الحقيقي بأنه من لا يؤذي المسلمين بقوله أو فعله"
+    }
+  ];
+
+  const currentVerse = verses[ayahIndex];
+  const currentHadith = hadiths[hadithIndex];
+
+  const refreshContent = () => {
+    setAyahIndex((prev) => (prev + 1) % verses.length);
+    setHadithIndex((prev) => (prev + 1) % hadiths.length);
+  };
+
+  const handleSettingsClick = () => {
     if (onPageChange) {
-      onPageChange(pageId);
+      onPageChange('settings');
     }
   };
 
@@ -119,6 +133,16 @@ export default function HomePage({ onPageChange }: HomePageProps) {
         {/* هيدر التطبيق مع الترحيب */}
         <div className="relative overflow-hidden rounded-3xl p-6 islamic-gradient text-white">
           <div className="absolute inset-0 bg-black/10"></div>
+          
+          {/* زر الإعدادات */}
+          <Button 
+            onClick={handleSettingsClick}
+            className="absolute top-4 left-4 bg-white/20 hover:bg-white/30 border-none p-2 h-auto"
+            variant="ghost"
+          >
+            <Settings className="h-5 w-5 text-white" />
+          </Button>
+
           <div className="relative z-10 text-center space-y-3">
             <div className="flex justify-center mb-2">
               {currentTime.getHours() < 12 ? (
@@ -132,19 +156,45 @@ export default function HomePage({ onPageChange }: HomePageProps) {
             <h1 className="text-2xl font-bold font-arabic-display">
               {greeting.ar}
             </h1>
-            <p className="text-white/90 text-sm">
-              {currentTime.toLocaleDateString('ar-SA', { 
-                weekday: 'long', 
-                day: 'numeric',
-                month: 'long' 
-              })}
-            </p>
+            
+            {/* التاريخ الميلادي والهجري */}
+            <div className="space-y-1">
+              <p className="text-white/90 text-sm">
+                {currentTime.toLocaleDateString('ar-SA', { 
+                  weekday: 'long', 
+                  day: 'numeric',
+                  month: 'long' 
+                })}
+              </p>
+              <p className="text-white/80 text-xs">{hijriDate}</p>
+            </div>
+            
             <div className="text-xl font-mono bg-white/20 rounded-xl px-3 py-2 inline-block">
               {currentTime.toLocaleTimeString('ar-SA', { 
                 hour: '2-digit', 
                 minute: '2-digit' 
               })}
             </div>
+          </div>
+        </div>
+
+        {/* معلومات الموقع والطقس */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-white rounded-2xl p-4 border border-border/50 shadow-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <MapPin className="h-4 w-4 text-islamic-green" />
+              <h3 className="text-sm font-bold text-islamic-green">الموقع</h3>
+            </div>
+            <p className="text-xs text-muted-foreground">{location}</p>
+          </div>
+          
+          <div className="bg-white rounded-2xl p-4 border border-border/50 shadow-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <Cloud className="h-4 w-4 text-islamic-blue" />
+              <h3 className="text-sm font-bold text-islamic-blue">الطقس</h3>
+            </div>
+            <p className="text-xs text-muted-foreground">{weather.temp}</p>
+            <p className="text-xs text-muted-foreground">{weather.condition}</p>
           </div>
         </div>
 
@@ -189,33 +239,15 @@ export default function HomePage({ onPageChange }: HomePageProps) {
           ))}
         </div>
 
-        {/* الأقسام الرئيسية */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-bold text-center font-arabic">الأقسام الرئيسية</h2>
-          <div className="grid grid-cols-2 gap-3">
-            {quickActions.map((action, index) => (
-              <div
-                key={action.id}
-                className="relative overflow-hidden rounded-2xl bg-white border border-border/50 p-4 cursor-pointer group hover:shadow-lg transition-all duration-300"
-                onClick={() => handleCardClick(action.id)}
-              >
-                <div className={`absolute inset-0 ${action.gradient} opacity-5 group-hover:opacity-10 transition-opacity`}></div>
-                <div className="relative z-10 text-center space-y-3">
-                  <div className={`w-12 h-12 rounded-xl ${action.gradient} flex items-center justify-center mx-auto group-hover:scale-110 transition-transform duration-300`}>
-                    <action.icon className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold font-arabic text-foreground group-hover:text-primary transition-colors">
-                      {action.title}
-                    </h3>
-                    <p className="text-xs text-muted-foreground mt-1">{action.description}</p>
-                    <p className="text-xs text-primary font-semibold mt-1">{action.stats}</p>
-                  </div>
-                </div>
-                <ChevronRight className="absolute top-3 left-3 h-4 w-4 text-muted-foreground/50 group-hover:text-primary transition-colors" />
-              </div>
-            ))}
-          </div>
+        {/* زر تحديث المحتوى */}
+        <div className="flex justify-center">
+          <Button 
+            onClick={refreshContent}
+            className="bg-islamic-green hover:bg-islamic-green/90 text-white rounded-xl px-6 py-2 flex items-center gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            <span className="font-arabic">تحديث المحتوى</span>
+          </Button>
         </div>
 
         {/* آية اليوم */}
@@ -227,15 +259,21 @@ export default function HomePage({ onPageChange }: HomePageProps) {
               <h3 className="text-lg font-bold text-islamic-green font-arabic">آية اليوم</h3>
             </div>
             <div className="text-base font-arabic-display leading-relaxed text-foreground bg-white/50 rounded-xl p-4">
-              "{ayahOfDay.text}"
+              "{currentVerse.text}"
             </div>
             <div className="space-y-2">
               <p className="text-sm font-semibold text-islamic-green">
-                {ayahOfDay.reference}
+                {currentVerse.reference}
               </p>
-              <p className="text-xs text-muted-foreground italic">
-                {ayahOfDay.translation}
+              <p className="text-xs text-muted-foreground italic mb-2">
+                {currentVerse.translation}
               </p>
+              <div className="bg-islamic-green/5 rounded-lg p-3">
+                <p className="text-xs text-foreground font-arabic leading-relaxed">
+                  <span className="font-bold text-islamic-green">التفسير: </span>
+                  {currentVerse.tafsir}
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -249,15 +287,21 @@ export default function HomePage({ onPageChange }: HomePageProps) {
               <h3 className="text-lg font-bold text-islamic-blue font-arabic">حديث اليوم</h3>
             </div>
             <div className="text-sm font-arabic-display leading-relaxed text-foreground bg-white/50 rounded-xl p-4 text-right">
-              {hadithOfDay.text}
+              {currentHadith.text}
             </div>
             <div className="space-y-2">
               <p className="text-xs text-muted-foreground">
-                {hadithOfDay.narrator}
+                {currentHadith.narrator}
               </p>
-              <p className="text-xs text-islamic-blue font-semibold">
-                {hadithOfDay.reference}
+              <p className="text-xs text-islamic-blue font-semibold mb-2">
+                {currentHadith.reference}
               </p>
+              <div className="bg-islamic-blue/5 rounded-lg p-3">
+                <p className="text-xs text-foreground font-arabic leading-relaxed">
+                  <span className="font-bold text-islamic-blue">الشرح: </span>
+                  {currentHadith.explanation}
+                </p>
+              </div>
             </div>
           </div>
         </div>
