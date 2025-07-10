@@ -60,13 +60,46 @@ export const getSurahs = async (): Promise<Surah[]> => {
   }
 };
 
-// جلب آيات سورة معينة
+// جلب آيات سورة معينة - جميع الآيات بدون تقسيم صفحات
 export const getSurahVerses = async (surahId: number, translation: string = '131'): Promise<Verse[]> => {
   try {
+    // جلب جميع آيات السورة دفعة واحدة مع عدد كبير للصفحة الواحدة
     const response = await axios.get<VersesResponse>(
-      `${QURAN_API_BASE}/verses/by_chapter/${surahId}?language=ar&text_type=uthmani&fields=text_uthmani,text_simple,page_number,verse_number,verse_key&translations=${translation}`
+      `${QURAN_API_BASE}/verses/by_chapter/${surahId}?language=ar&text_type=uthmani&fields=text_uthmani,text_simple,page_number,verse_number,verse_key&translations=${translation}&per_page=300`
     );
-    return response.data.verses;
+    
+    let allVerses = response.data.verses;
+    
+    // في حالة وجود آيات أكثر، جلب الصفحات المتبقية
+    if (response.data.verses.length === 300) {
+      let page = 2;
+      let hasMorePages = true;
+      
+      while (hasMorePages) {
+        try {
+          const nextResponse = await axios.get<VersesResponse>(
+            `${QURAN_API_BASE}/verses/by_chapter/${surahId}?language=ar&text_type=uthmani&fields=text_uthmani,text_simple,page_number,verse_number,verse_key&translations=${translation}&per_page=300&page=${page}`
+          );
+          
+          if (nextResponse.data.verses.length > 0) {
+            allVerses = [...allVerses, ...nextResponse.data.verses];
+            page++;
+            
+            // إذا كانت الصفحة تحتوي على آيات أقل من 300، فهي الصفحة الأخيرة
+            if (nextResponse.data.verses.length < 300) {
+              hasMorePages = false;
+            }
+          } else {
+            hasMorePages = false;
+          }
+        } catch (pageError) {
+          console.error(`خطأ في جلب الصفحة ${page}:`, pageError);
+          hasMorePages = false;
+        }
+      }
+    }
+    
+    return allVerses;
   } catch (error) {
     console.error('خطأ في جلب الآيات:', error);
     return [];
