@@ -120,9 +120,7 @@ export default function HomePage({ onPageChange }: HomePageProps) {
   };
 
   const handleSettingsClick = () => {
-    if (onPageChange) {
-      onPageChange('settings');
-    }
+    onPageChange?.('settings');
   };
 
   const greeting = getGreeting();

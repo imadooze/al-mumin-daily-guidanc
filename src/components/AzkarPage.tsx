@@ -351,6 +351,78 @@ export default function AzkarPage({ onPageChange }: AzkarPageProps) {
       },
       {
         id: 'general_7',
+        text: 'لا إِلَهَ إِلَّا اللَّهُ العَظِيمُ الحَلِيمُ، لا إِلَهَ إِلَّا اللَّهُ رَبُّ العَرْشِ العَظِيمِ',
+        translation: 'None has the right to be worshipped except Allah, the Mighty, the Forbearing...',
+        count: 1,
+        source: 'البخاري ومسلم',
+        benefits: 'دعاء الكرب'
+      },
+      {
+        id: 'general_8', 
+        text: 'اللَّهُمَّ إِنِّي أَسْأَلُكَ مِنَ الخَيْرِ كُلِّهِ عَاجِلِهِ وَآجِلِهِ',
+        translation: 'O Allah, I ask You for all that is good, in this world and in the Hereafter...',
+        count: 1,
+        source: 'ابن ماجه',
+        benefits: 'طلب الخير كله'
+      },
+      {
+        id: 'general_9',
+        text: 'حَسْبُنَا اللَّهُ وَنِعْمَ الوَكِيل',
+        translation: 'Allah (Alone) is Sufficient for us, and He is the Best Disposer of affairs.',
+        count: 7,
+        source: 'البخاري',
+        benefits: 'التوكل على الله'
+      },
+      {
+        id: 'general_10',
+        text: 'اللَّهُمَّ بَارِكْ لَنَا فِيمَا رَزَقْتَنَا وَقِنَا عَذَابَ النَّار',
+        translation: 'O Allah, bless for us what You have provided us and save us from the punishment of the Fire.',
+        count: 1,
+        source: 'الترمذي',
+        benefits: 'طلب البركة والحماية'
+      },
+      {
+        id: 'general_11',
+        text: 'رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّار',
+        translation: 'Our Lord! Give us in this world that which is good and in the Hereafter that which is good...',
+        count: 1,
+        source: 'البخاري ومسلم',
+        benefits: 'دعاء جامع للدنيا والآخرة'
+      },
+      {
+        id: 'general_12',
+        text: 'اللَّهُمَّ أَصْلِحْ لِي دِينِي الَّذِي هُوَ عِصْمَةُ أَمْرِي',
+        translation: 'O Allah, make my religion right for me, which is the safeguard of my affairs...',
+        count: 1,
+        source: 'مسلم',
+        benefits: 'طلب إصلاح الدين والدنيا'
+      },
+      {
+        id: 'general_13',
+        text: 'اللَّهُمَّ اهْدِنِي لأَحْسَنِ الأَخْلَاقِ لَا يَهْدِي لأَحْسَنِهَا إِلَّا أَنْت',
+        translation: 'O Allah, guide me to the best of character, for none can guide to it other than You...',
+        count: 1,
+        source: 'مسلم',
+        benefits: 'طلب حسن الخلق'
+      },
+      {
+        id: 'general_14',
+        text: 'يَا مُقَلِّبَ القُلُوبِ ثَبِّتْ قَلْبِي عَلَى دِينِك',
+        translation: 'O Controller of the hearts, make my heart firm in Your religion.',
+        count: 1,
+        source: 'الترمذي',
+        benefits: 'تثبيت القلب على الدين'
+      },
+      {
+        id: 'general_15',
+        text: 'اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ زَوَالِ نِعْمَتِكَ وَتَحَوُّلِ عَافِيَتِك',
+        translation: 'O Allah, I seek refuge with You from the decline of Your favours...',
+        count: 1,
+        source: 'مسلم',
+        benefits: 'حفظ النعم والعافية'
+      },
+      {
+        id: 'general_7',
         text: 'اللَّهُمَّ إِنِّي أَسْأَلُكَ مِنَ الْخَيْرِ كُلِّهِ عَاجِلِهِ وَآجِلِهِ',
         translation: 'O Allah, I ask You for all that is good, in this world and in the Hereafter.',
         count: 1,
