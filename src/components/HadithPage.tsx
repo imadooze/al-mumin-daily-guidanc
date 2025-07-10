@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowRight, Search, BookOpen, Star } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { ArrowRight, Search, BookOpen, Star, RefreshCw, Heart } from 'lucide-react';
+import { searchAhadith, getRandomHadith, hadithCategories, ahadithDatabase } from '@/lib/hadith-api';
 
 interface HadithPageProps {
   onPageChange?: (page: string) => void;
@@ -11,98 +13,40 @@ interface HadithPageProps {
 export default function HadithPage({ onPageChange }: HadithPageProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [displayedAhadith, setDisplayedAhadith] = useState(ahadithDatabase.slice(0, 10));
+  const [favorites, setFavorites] = useState<number[]>([]);
+  const [loadMore, setLoadMore] = useState(10);
 
-  const hadithCategories = [
-    { id: 'all', name: 'الكل', nameEn: 'All' },
-    { id: 'aqeedah', name: 'العقيدة', nameEn: 'Faith' },
-    { id: 'akhlaq', name: 'الأخلاق', nameEn: 'Ethics' },
-    { id: 'salah', name: 'الصلاة', nameEn: 'Prayer' },
-    { id: 'ilm', name: 'العلم', nameEn: 'Knowledge' },
-    { id: 'birr', name: 'البر', nameEn: 'Righteousness' },
-    { id: 'zakat', name: 'الزكاة', nameEn: 'Charity' },
-    { id: 'hajj', name: 'الحج', nameEn: 'Pilgrimage' }
-  ];
+  useEffect(() => {
+    const results = searchAhadith(searchTerm, selectedCategory);
+    setDisplayedAhadith(results.slice(0, loadMore));
+  }, [searchTerm, selectedCategory, loadMore]);
 
-  const ahadith = [
-    {
-      id: 1,
-      category: 'aqeedah',
-      title: 'حديث جبريل',
-      arabic: 'عَنْ عُمَرَ بْنِ الْخَطَّابِ رَضِيَ اللَّهُ عَنْهُ قَالَ: بَيْنَمَا نَحْنُ عِنْدَ رَسُولِ اللَّهِ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ ذَاتَ يَوْمٍ إِذْ طَلَعَ عَلَيْنَا رَجُلٌ شَدِيدُ بَيَاضِ الثِّيَابِ، شَدِيدُ سَوَادِ الشَّعَرِ، لَا يُرَى عَلَيْهِ أَثَرُ السَّفَرِ، وَلَا يَعْرِفُهُ مِنَّا أَحَدٌ، حَتَّى جَلَسَ إِلَى النَّبِيِّ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ، فَأَسْنَدَ رُكْبَتَيْهِ إِلَى رُكْبَتَيْهِ، وَوَضَعَ كَفَّيْهِ عَلَى فَخِذَيْهِ، وَقَالَ: يَا مُحَمَّدُ أَخْبِرْنِي عَنِ الْإِسْلَامِ. فَقَالَ رَسُولُ اللَّهِ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ: الْإِسْلَامُ أَنْ تَشْهَدَ أَنْ لَا إِلَهَ إِلَّا اللَّهُ وَأَنَّ مُحَمَّدًا رَسُولُ اللَّهِ، وَتُقِيمَ الصَّلَاةَ، وَتُؤْتِيَ الزَّكَاةَ، وَتَصُومَ رَمَضَانَ، وَتَحُجَّ الْبَيْتَ إِنِ اسْتَطَعْتَ إِلَيْهِ سَبِيلًا',
-      source: 'صحيح مسلم',
-      narrator: 'عمر بن الخطاب رضي الله عنه',
-      explanation: 'هذا الحديث يعرّف الإسلام والإيمان والإحسان، وهو من أصول الدين'
-    },
-    {
-      id: 2,
-      category: 'akhlaq',
-      title: 'حسن الخلق',
-      arabic: 'عَنْ أَبِي هُرَيْرَةَ رَضِيَ اللَّهُ عَنْهُ قَالَ: قَالَ رَسُولُ اللَّهِ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ: إِنَّمَا بُعِثْتُ لِأُتَمِّمَ مَكَارِمَ الْأَخْلَاقِ',
-      source: 'موطأ مالك',
-      narrator: 'أبو هريرة رضي الله عنه',
-      explanation: 'الهدف من بعثة النبي صلى الله عليه وسلم هو إتمام مكارم الأخلاق'
-    },
-    {
-      id: 3,
-      category: 'salah',
-      title: 'عماد الدين',
-      arabic: 'عَنْ مُعَاذِ بْنِ جَبَلٍ رَضِيَ اللَّهُ عَنْهُ قَالَ: قَالَ رَسُولُ اللَّهِ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ: رَأْسُ الْأَمْرِ الْإِسْلَامُ، وَعَمُودُهُ الصَّلَاةُ، وَذِرْوَةُ سَنَامِهِ الْجِهَادُ',
-      source: 'سنن الترمذي',
-      narrator: 'معاذ بن جبل رضي الله عنه',
-      explanation: 'الصلاة هي عماد الدين وأساسه بعد الشهادتين'
-    },
-    {
-      id: 4,
-      category: 'ilm',
-      title: 'فضل العلم',
-      arabic: 'عَنْ أَبِي هُرَيْرَةَ رَضِيَ اللَّهُ عَنْهُ قَالَ: قَالَ رَسُولُ اللَّهِ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ: مَنْ سَلَكَ طَرِيقًا يَلْتَمِسُ فِيهِ عِلْمًا، سَهَّلَ اللَّهُ لَهُ بِهِ طَرِيقًا إِلَى الْجَنَّةِ',
-      source: 'صحيح مسلم',
-      narrator: 'أبو هريرة رضي الله عنه',
-      explanation: 'فضل طلب العلم وأن الله يسهل طريق الجنة لطالب العلم'
-    },
-    {
-      id: 5,
-      category: 'birr',
-      title: 'بر الوالدين',
-      arabic: 'عَنْ أَبِي هُرَيْرَةَ رَضِيَ اللَّهُ عَنْهُ قَالَ: جَاءَ رَجُلٌ إِلَى رَسُولِ اللَّهِ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ فَقَالَ: يَا رَسُولَ اللَّهِ، مَنْ أَحَقُّ النَّاسِ بِحُسْنِ صَحَابَتِي؟ قَالَ: أُمُّكَ. قَالَ: ثُمَّ مَنْ؟ قَالَ: ثُمَّ أُمُّكَ. قَالَ: ثُمَّ مَنْ؟ قَالَ: ثُمَّ أُمُّكَ. قَالَ: ثُمَّ مَنْ؟ قَالَ: ثُمَّ أَبُوكَ',
-      source: 'صحيح البخاري ومسلم',
-      narrator: 'أبو هريرة رضي الله عنه',
-      explanation: 'فضل بر الوالدين وأن الأم أولى بحسن الصحبة'
-    },
-    {
-      id: 6,
-      category: 'zakat',
-      title: 'فضل الصدقة',
-      arabic: 'عَنْ أَبِي هُرَيْرَةَ رَضِيَ اللَّهُ عَنْهُ قَالَ: قَالَ رَسُولُ اللَّهِ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ: مَا تَصَدَّقَ أَحَدٌ بِصَدَقَةٍ مِنْ طَيِّبٍ، وَلَا يَقْبَلُ اللَّهُ إِلَّا الطَّيِّبَ، إِلَّا أَخَذَهَا الرَّحْمَنُ بِيَمِينِهِ، وَإِنْ كَانَتْ تَمْرَةً، فَتَرْبُو فِي كَفِّ الرَّحْمَنِ حَتَّى تَكُونَ أَعْظَمَ مِنَ الْجَبَلِ',
-      source: 'صحيح البخاري ومسلم',
-      narrator: 'أبو هريرة رضي الله عنه',
-      explanation: 'فضل الصدقة من الطيب وأن الله ينمي الصدقة'
-    },
-    {
-      id: 7,
-      category: 'hajj',
-      title: 'فضل الحج',
-      arabic: 'عَنْ أَبِي هُرَيْرَةَ رَضِيَ اللَّهُ عَنْهُ قَالَ: قَالَ رَسُولُ اللَّهِ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ: الْحَجُّ الْمَبْرُورُ لَيْسَ لَهُ جَزَاءٌ إِلَّا الْجَنَّةُ',
-      source: 'صحيح البخاري ومسلم',
-      narrator: 'أبو هريرة رضي الله عنه',
-      explanation: 'فضل الحج المبرور وأن جزاؤه الجنة'
-    },
-    {
-      id: 8,
-      category: 'akhlaq',
-      title: 'الكلمة الطيبة',
-      arabic: 'عَنْ أَبِي هُرَيْرَةَ رَضِيَ اللَّهُ عَنْهُ قَالَ: قَالَ رَسُولُ اللَّهِ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ: الْكَلِمَةُ الطَّيِّبَةُ صَدَقَةٌ',
-      source: 'صحيح البخاري ومسلم',
-      narrator: 'أبو هريرة رضي الله عنه',
-      explanation: 'فضل الكلمة الطيبة وأنها من الصدقات'
-    }
-  ];
+  const handleLoadMore = () => {
+    setLoadMore(prev => prev + 10);
+  };
 
-  const filteredAhadith = ahadith.filter(hadith => {
-    const matchesSearch = hadith.title.includes(searchTerm) || hadith.arabic.includes(searchTerm);
-    const matchesCategory = selectedCategory === 'all' || hadith.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const toggleFavorite = (hadithId: number) => {
+    setFavorites(prev => 
+      prev.includes(hadithId) 
+        ? prev.filter(id => id !== hadithId)
+        : [...prev, hadithId]
+    );
+  };
+
+  const handleRandomHadith = () => {
+    const randomHadith = getRandomHadith();
+    setDisplayedAhadith([randomHadith]);
+    setSearchTerm('');
+    setSelectedCategory('all');
+  };
+
+  const categoryStats = hadithCategories.map(cat => ({
+    ...cat,
+    count: cat.id === 'all' 
+      ? ahadithDatabase.length 
+      : ahadithDatabase.filter(h => h.category === cat.id).length
+  }));
 
   return (
     <div className="space-y-6">
@@ -121,10 +65,60 @@ export default function HadithPage({ onPageChange }: HadithPageProps) {
           <h1 className="text-2xl font-bold text-foreground font-arabic-display">
             الأحاديث النبوية
           </h1>
-          <p className="text-muted-foreground">Prophetic Traditions</p>
+          <p className="text-muted-foreground">أكثر من {ahadithDatabase.length} حديث صحيح</p>
         </div>
 
-        <div className="w-10"></div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleRandomHadith}
+          className="rounded-full"
+        >
+          <RefreshCw className="h-5 w-5" />
+        </Button>
+      </div>
+
+      {/* إحصائيات سريعة */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card className="islamic-card">
+          <CardContent className="p-4 text-center">
+            <div className="islamic-gradient w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-2">
+              <BookOpen className="h-5 w-5 text-white" />
+            </div>
+            <p className="text-2xl font-bold text-islamic-green">{ahadithDatabase.length}+</p>
+            <p className="text-xs text-muted-foreground">حديث صحيح</p>
+          </CardContent>
+        </Card>
+        
+        <Card className="islamic-card">
+          <CardContent className="p-4 text-center">
+            <div className="bg-islamic-blue w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-2">
+              <Star className="h-5 w-5 text-white" />
+            </div>
+            <p className="text-2xl font-bold text-islamic-blue">{hadithCategories.length - 1}</p>
+            <p className="text-xs text-muted-foreground">تصنيف</p>
+          </CardContent>
+        </Card>
+        
+        <Card className="islamic-card">
+          <CardContent className="p-4 text-center">
+            <div className="bg-islamic-gold w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-2">
+              <Heart className="h-5 w-5 text-white" />
+            </div>
+            <p className="text-2xl font-bold text-islamic-gold">{favorites.length}</p>
+            <p className="text-xs text-muted-foreground">مفضل</p>
+          </CardContent>
+        </Card>
+        
+        <Card className="islamic-card">
+          <CardContent className="p-4 text-center">
+            <div className="bg-gradient-to-r from-islamic-green to-islamic-blue w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-2">
+              <Search className="h-5 w-5 text-white" />
+            </div>
+            <p className="text-2xl font-bold text-primary">{displayedAhadith.length}</p>
+            <p className="text-xs text-muted-foreground">نتيجة</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* شريط البحث */}
@@ -134,7 +128,7 @@ export default function HadithPage({ onPageChange }: HadithPageProps) {
             <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
               type="text"
-              placeholder="ابحث في الأحاديث..."
+              placeholder="ابحث في الأحاديث بالعنوان أو النص أو الراوي..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pr-10 text-right"
@@ -146,21 +140,30 @@ export default function HadithPage({ onPageChange }: HadithPageProps) {
 
       {/* تصنيفات الأحاديث */}
       <Card className="islamic-card">
-        <CardContent className="p-4">
-          <div className="flex flex-wrap gap-2">
-            {hadithCategories.map((category) => (
+        <CardHeader>
+          <CardTitle className="text-center">التصنيفات</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2 justify-center">
+            {categoryStats.map((category) => (
               <Button
                 key={category.id}
                 variant={selectedCategory === category.id ? "default" : "outline"}
                 size="sm"
                 onClick={() => setSelectedCategory(category.id)}
-                className={`${
+                className={`relative ${
                   selectedCategory === category.id 
-                    ? 'bg-gradient-primary text-white' 
+                    ? 'islamic-gradient text-white' 
                     : 'hover:bg-muted'
                 }`}
               >
                 {category.name}
+                <Badge 
+                  variant="secondary" 
+                  className="ml-2 text-xs bg-white/20 text-current border-none"
+                >
+                  {category.count}
+                </Badge>
               </Button>
             ))}
           </div>
@@ -169,29 +172,45 @@ export default function HadithPage({ onPageChange }: HadithPageProps) {
 
       {/* قائمة الأحاديث */}
       <div className="space-y-4">
-        {filteredAhadith.map((hadith) => (
-          <Card key={hadith.id} className="islamic-card">
+        {displayedAhadith.map((hadith) => (
+          <Card key={hadith.id} className="islamic-card relative">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-right text-lg">
-                <Star className="h-5 w-5 text-islamic-gold" />
-                {hadith.title}
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-right text-lg">
+                  <Star className="h-5 w-5 text-islamic-gold" />
+                  {hadith.title}
+                </CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => toggleFavorite(hadith.id)}
+                  className={`${favorites.includes(hadith.id) ? 'text-red-500' : 'text-muted-foreground'}`}
+                >
+                  <Heart className={`h-4 w-4 ${favorites.includes(hadith.id) ? 'fill-current' : ''}`} />
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="arabic-text text-base leading-relaxed p-4 bg-muted/20 rounded-lg">
+              <div className="arabic-text text-base leading-relaxed p-4 bg-muted/20 rounded-lg border-r-4 border-islamic-green">
                 {hadith.arabic}
               </div>
               
               <div className="space-y-2">
-                <div className="text-sm text-muted-foreground">
-                  <strong>الراوي:</strong> {hadith.narrator}
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Badge variant="outline" className="bg-islamic-green/10 text-islamic-green border-islamic-green/20">
+                    {hadithCategories.find(cat => cat.id === hadith.category)?.name}
+                  </Badge>
+                  <span>•</span>
+                  <span><strong>الراوي:</strong> {hadith.narrator}</span>
                 </div>
+                
                 <div className="flex items-center gap-2 text-sm text-islamic-blue">
                   <BookOpen className="h-4 w-4" />
-                  <span>{hadith.source}</span>
+                  <span><strong>المصدر:</strong> {hadith.source}</span>
                 </div>
+                
                 <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg">
-                  <strong>الشرح:</strong> {hadith.explanation}
+                  <strong className="text-islamic-blue">الشرح:</strong> {hadith.explanation}
                 </div>
               </div>
             </CardContent>
@@ -199,12 +218,28 @@ export default function HadithPage({ onPageChange }: HadithPageProps) {
         ))}
       </div>
 
+      {/* زر تحميل المزيد */}
+      {displayedAhadith.length > 0 && displayedAhadith.length < searchAhadith(searchTerm, selectedCategory).length && (
+        <div className="text-center">
+          <Button
+            onClick={handleLoadMore}
+            className="islamic-gradient text-white px-8 py-2"
+          >
+            تحميل المزيد من الأحاديث
+          </Button>
+        </div>
+      )}
+
       {/* رسالة عدم وجود نتائج */}
-      {filteredAhadith.length === 0 && (
+      {displayedAhadith.length === 0 && (
         <Card className="islamic-card">
           <CardContent className="p-8 text-center">
             <Star className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">لم يتم العثور على أحاديث تطابق البحث</p>
+            <p className="text-muted-foreground mb-4">لم يتم العثور على أحاديث تطابق البحث</p>
+            <Button onClick={handleRandomHadith} variant="outline">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              عرض حديث عشوائي
+            </Button>
           </CardContent>
         </Card>
       )}

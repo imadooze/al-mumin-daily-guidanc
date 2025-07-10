@@ -58,32 +58,7 @@ export default function MorePage({ onPageChange }: MorePageProps) {
     }
   ];
 
-  const settingsOptions = [
-    {
-      id: 'settings',
-      title: 'الإعدادات',
-      titleEn: 'Settings',
-      description: 'الوضع المظلم، اللغة، والتنبيهات',
-      icon: Settings,
-      color: 'bg-muted'
-    },
-    {
-      id: 'help',
-      title: 'المساعدة والدعم',
-      titleEn: 'Help & Support',
-      description: 'الأسئلة الشائعة والدعم الفني',
-      icon: HelpCircle,
-      color: 'bg-muted'
-    }
-  ];
-
   const handleCardClick = (pageId: string) => {
-    if (pageId === 'help') {
-      // فتح رابط الإنستغرام
-      window.open('https://www.instagram.com/bot_.en?igsh=dGY1dTl2azhtdTI0', '_blank');
-      return;
-    }
-    
     if (onPageChange) {
       onPageChange(pageId);
     }
@@ -139,32 +114,6 @@ export default function MorePage({ onPageChange }: MorePageProps) {
         </div>
       </div>
 
-      {/* الإعدادات والدعم */}
-      <div>
-        <h2 className="text-lg font-bold text-foreground mb-4 font-arabic">الإعدادات والدعم</h2>
-        <div className="space-y-3">
-          {settingsOptions.map((option) => (
-            <Card
-              key={option.id}
-              className="islamic-card hover-lift cursor-pointer group"
-              onClick={() => handleCardClick(option.id)}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    <option.icon className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-medium font-arabic">{option.title}</h3>
-                    <p className="text-sm text-muted-foreground">{option.description}</p>
-                  </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
 
       {/* معلومات التطبيق */}
       <Card className="islamic-card">

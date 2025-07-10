@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { ArrowRight, Moon, Sun, Globe, Bell, Volume2, Smartphone } from 'lucide-react';
+import { ArrowRight, Moon, Sun, Globe, Bell, Volume2, Smartphone, HelpCircle, Instagram, Star } from 'lucide-react';
 
 interface SettingsPageProps {
   onPageChange?: (page: string) => void;
@@ -42,7 +42,7 @@ export default function SettingsPage({ onPageChange }: SettingsPageProps) {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => onPageChange?.('more')}
+          onClick={() => onPageChange?.('home')}
           className="rounded-full"
         >
           <ArrowRight className="h-5 w-5" />
@@ -206,6 +206,51 @@ export default function SettingsPage({ onPageChange }: SettingsPageProps) {
           <Button variant="outline" className="w-full justify-start">
             مسح البيانات المحفوظة
           </Button>
+        </CardContent>
+      </Card>
+
+      {/* المساعدة والدعم */}
+      <Card className="islamic-card">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <HelpCircle className="h-5 w-5" />
+            المساعدة والدعم
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Button 
+            variant="outline" 
+            className="w-full justify-start gap-2"
+            onClick={() => window.open('https://www.instagram.com/bot_.en?igsh=dGY1dTl2azhtdTI0', '_blank')}
+          >
+            <Instagram className="h-4 w-4" />
+            تابعنا على إنستغرام
+          </Button>
+          <Button variant="outline" className="w-full justify-start">
+            الأسئلة الشائعة
+          </Button>
+          <Button variant="outline" className="w-full justify-start">
+            تقييم التطبيق
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* معلومات التطبيق */}
+      <Card className="islamic-card">
+        <CardHeader>
+          <CardTitle className="text-center">عن التطبيق</CardTitle>
+        </CardHeader>
+        <CardContent className="text-center space-y-4">
+          <div className="w-16 h-16 islamic-gradient rounded-full flex items-center justify-center mx-auto">
+            <Star className="h-8 w-8 text-white" />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold font-arabic-display">الـمُؤمِن</h3>
+            <p className="text-muted-foreground">Al-Mumin</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              دليلك اليومي للروح والإيمان
+            </p>
+          </div>
         </CardContent>
       </Card>
 
