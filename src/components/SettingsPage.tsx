@@ -30,7 +30,16 @@ export default function SettingsPage({ onPageChange }: SettingsPageProps) {
 
   const handleLanguageChange = (lang: string) => {
     setLanguage(lang);
-    // هنا يمكن إضافة منطق تغيير اللغة
+    
+    // تطبيق تغيير اللغة على العناصر
+    if (lang === 'english') {
+      document.documentElement.setAttribute('dir', 'ltr');
+      document.documentElement.setAttribute('lang', 'en');
+      // يمكن إضافة ترجمة النصوص هنا
+    } else {
+      document.documentElement.setAttribute('dir', 'rtl');
+      document.documentElement.setAttribute('lang', 'ar');
+    }
   };
 
   const handleNotificationToggle = (type: string) => {
@@ -181,13 +190,36 @@ export default function SettingsPage({ onPageChange }: SettingsPageProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <Button variant="outline" className="w-full justify-start">
+          <Button 
+            variant="outline" 
+            className="w-full justify-start"
+            onClick={() => alert('سيتم إضافة خيارات طرق الحساب قريباً')}
+          >
             طريقة حساب أوقات الصلاة
           </Button>
-          <Button variant="outline" className="w-full justify-start">
+          <Button 
+            variant="outline" 
+            className="w-full justify-start"
+            onClick={() => alert('سيتم إضافة مكتبة الأصوات قريباً')}
+          >
             اختيار صوت الأذان
           </Button>
-          <Button variant="outline" className="w-full justify-start">
+          <Button 
+            variant="outline" 
+            className="w-full justify-start"
+            onClick={() => {
+              if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                  (position) => {
+                    alert(`تم تحديد الموقع: ${position.coords.latitude}, ${position.coords.longitude}`);
+                  },
+                  () => alert('فشل في تحديد الموقع')
+                );
+              } else {
+                alert('المتصفح لا يدعم تحديد الموقع');
+              }
+            }}
+          >
             تعديل الموقع الجغرافي
           </Button>
         </CardContent>
@@ -202,13 +234,44 @@ export default function SettingsPage({ onPageChange }: SettingsPageProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <Button variant="outline" className="w-full justify-start">
+          <Button 
+            variant="outline" 
+            className="w-full justify-start"
+            onClick={() => alert('سيتم إضافة خيارات حجم الخط قريباً')}
+          >
             حجم الخط في القرآن
           </Button>
-          <Button variant="outline" className="w-full justify-start">
+          <Button 
+            variant="outline" 
+            className="w-full justify-start"
+            onClick={() => {
+              const data = {
+                settings: { darkMode, language, notifications },
+                timestamp: new Date().toISOString()
+              };
+              const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = 'al-mumin-backup.json';
+              a.click();
+              URL.revokeObjectURL(url);
+              alert('تم إنشاء النسخة الاحتياطية');
+            }}
+          >
             نسخ احتياطي للبيانات
           </Button>
-          <Button variant="outline" className="w-full justify-start">
+          <Button 
+            variant="outline" 
+            className="w-full justify-start"
+            onClick={() => {
+              if (confirm('هل أنت متأكد من حذف جميع البيانات؟')) {
+                localStorage.clear();
+                alert('تم مسح البيانات المحفوظة');
+                window.location.reload();
+              }
+            }}
+          >
             مسح البيانات المحفوظة
           </Button>
         </CardContent>
@@ -231,10 +294,22 @@ export default function SettingsPage({ onPageChange }: SettingsPageProps) {
             <Instagram className="h-4 w-4" />
             تابعنا على إنستغرام
           </Button>
-          <Button variant="outline" className="w-full justify-start">
+          <Button 
+            variant="outline" 
+            className="w-full justify-start"
+            onClick={() => alert('الأسئلة الشائعة:\n\n1. كيف أغير أوقات الصلاة؟ - من إعدادات الصلاة\n2. كيف أضيف تذكير؟ - من إعدادات التنبيهات\n3. كيف أحفظ المفضلة؟ - اضغط على أيقونة القلب')}
+          >
             الأسئلة الشائعة
           </Button>
-          <Button variant="outline" className="w-full justify-start">
+          <Button 
+            variant="outline" 
+            className="w-full justify-start"
+            onClick={() => {
+              if (confirm('شكراً لك! هل تريد تقييم التطبيق الآن؟')) {
+                window.open('https://lovable.dev', '_blank');
+              }
+            }}
+          >
             تقييم التطبيق
           </Button>
         </CardContent>

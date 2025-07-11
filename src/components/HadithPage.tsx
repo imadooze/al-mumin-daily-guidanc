@@ -3,12 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowRight, BookOpen, Star, RefreshCw, Loader } from 'lucide-react';
-
-interface Hadith {
-  id: number;
-  book: string;
-  hadith: string;
-}
+import { getRandomHadith, type Hadith } from '@/lib/reliable-hadith-api';
 
 interface HadithPageProps {
   onPageChange?: (page: string) => void;
@@ -17,24 +12,16 @@ interface HadithPageProps {
 export default function HadithPage({ onPageChange }: HadithPageProps) {
   const [currentHadith, setCurrentHadith] = useState<Hadith | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const fetchRandomHadith = async () => {
+  const fetchRandomHadith = () => {
     setLoading(true);
-    setError(null);
-    try {
-      const response = await fetch('https://alhadith-api.vercel.app/api/hadith');
-      if (!response.ok) {
-        throw new Error('فشل في تحميل الحديث');
-      }
-      const data = await response.json();
-      setCurrentHadith(data);
-    } catch (err) {
-      setError('حدث خطأ في تحميل الحديث. يرجى المحاولة مرة أخرى.');
-      console.error('Error fetching hadith:', err);
-    } finally {
+    
+    // محاكاة تأخير للتحميل
+    setTimeout(() => {
+      const hadith = getRandomHadith();
+      setCurrentHadith(hadith);
       setLoading(false);
-    }
+    }, 500);
   };
 
   useEffect(() => {
@@ -86,23 +73,6 @@ export default function HadithPage({ onPageChange }: HadithPageProps) {
                 <p className="text-muted-foreground">جاري تحميل الحديث...</p>
               </CardContent>
             </Card>
-          ) : error ? (
-            <Card className="islamic-card border-red-200">
-              <CardContent className="p-6 text-center">
-                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Star className="h-6 w-6 text-red-500" />
-                </div>
-                <p className="text-red-600 mb-4">{error}</p>
-                <Button 
-                  onClick={fetchRandomHadith}
-                  variant="outline"
-                  className="border-red-200 text-red-600 hover:bg-red-50"
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  إعادة المحاولة
-                </Button>
-              </CardContent>
-            </Card>
           ) : currentHadith ? (
             <Card className="islamic-card">
               <CardHeader>
@@ -128,14 +98,40 @@ export default function HadithPage({ onPageChange }: HadithPageProps) {
                   </div>
                 </div>
                 
-                <div className="text-center">
+                <div className="text-center space-y-2">
                   <p className="text-sm text-muted-foreground">
                     المصدر: <span className="font-semibold text-islamic-blue">{currentHadith.book}</span>
                   </p>
+                  {currentHadith.narrator && (
+                    <p className="text-sm text-muted-foreground">
+                      الراوي: <span className="font-semibold text-islamic-green">{currentHadith.narrator}</span>
+                    </p>
+                  )}
+                  {currentHadith.reference && (
+                    <p className="text-xs text-muted-foreground">
+                      المرجع: {currentHadith.reference}
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>
           ) : null}
+          
+          {/* إحصائيات الأحاديث */}
+          <Card className="islamic-card bg-gradient-to-r from-islamic-green/5 to-islamic-blue/5">
+            <CardContent className="p-4">
+              <div className="grid grid-cols-2 gap-4 text-center">
+                <div>
+                  <div className="text-2xl font-bold text-islamic-green">50+</div>
+                  <p className="text-sm text-muted-foreground">حديث صحيح</p>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-islamic-blue">100%</div>
+                  <p className="text-sm text-muted-foreground">أحاديث موثقة</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* زر حديث جديد */}
