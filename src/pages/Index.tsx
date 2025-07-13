@@ -11,6 +11,7 @@ import HadithPage from '@/components/HadithPage';
 import PrayerTimesPage from '@/components/PrayerTimesPage';
 import MorePage from '@/components/MorePage';
 import SettingsPage from '@/components/SettingsPage';
+import IslamicEducationPage from '@/components/IslamicEducationPage';
 
 const Index = () => {
   const [currentPage, setCurrentPage] = useState('home');
@@ -40,9 +41,9 @@ const Index = () => {
       case 'settings':
         return <SettingsPage onPageChange={setCurrentPage} />;
       case 'hijri-calendar':
-        return <MorePage onPageChange={setCurrentPage} />; // مؤقت
+        return <IslamicEducationPage onPageChange={setCurrentPage} />;
       case 'learning':
-        return <MorePage onPageChange={setCurrentPage} />; // مؤقت
+        return <IslamicEducationPage onPageChange={setCurrentPage} />;
       default:
         return <HomePage onPageChange={setCurrentPage} />;
     }

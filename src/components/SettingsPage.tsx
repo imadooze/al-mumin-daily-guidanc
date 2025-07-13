@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -9,8 +9,13 @@ interface SettingsPageProps {
 }
 
 export default function SettingsPage({ onPageChange }: SettingsPageProps) {
-  const [darkMode, setDarkMode] = useState(false);
-  const [language, setLanguage] = useState('arabic');
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem('dark-mode');
+    return saved ? JSON.parse(saved) : false;
+  });
+  const [language, setLanguage] = useState(() => {
+    return localStorage.getItem('app-language') || 'arabic';
+  });
   const [notifications, setNotifications] = useState({
     prayerAlerts: true,
     azkarReminders: true,
@@ -26,6 +31,8 @@ export default function SettingsPage({ onPageChange }: SettingsPageProps) {
     } else {
       document.documentElement.classList.remove('dark');
     }
+    // حفظ الحالة في التخزين المحلي
+    localStorage.setItem('dark-mode', JSON.stringify(newDarkMode));
   };
 
   const handleLanguageChange = (lang: string) => {
@@ -35,10 +42,13 @@ export default function SettingsPage({ onPageChange }: SettingsPageProps) {
     if (lang === 'english') {
       document.documentElement.setAttribute('dir', 'ltr');
       document.documentElement.setAttribute('lang', 'en');
+      // حفظ اللغة في التخزين المحلي
+      localStorage.setItem('app-language', 'english');
       // يمكن إضافة ترجمة النصوص هنا
     } else {
       document.documentElement.setAttribute('dir', 'rtl');
       document.documentElement.setAttribute('lang', 'ar');
+      localStorage.setItem('app-language', 'arabic');
     }
   };
 
@@ -48,6 +58,25 @@ export default function SettingsPage({ onPageChange }: SettingsPageProps) {
       [type]: !prev[type]
     }));
   };
+
+  // تطبيق الإعدادات المحفوظة عند تحميل الصفحة
+  useEffect(() => {
+    // تطبيق الوضع المظلم
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+
+    // تطبيق إعدادات اللغة
+    if (language === 'english') {
+      document.documentElement.setAttribute('dir', 'ltr');
+      document.documentElement.setAttribute('lang', 'en');
+    } else {
+      document.documentElement.setAttribute('dir', 'rtl');
+      document.documentElement.setAttribute('lang', 'ar');
+    }
+  }, []);
 
   return (
     <div className="space-y-6">
