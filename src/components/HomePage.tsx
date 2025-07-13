@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Clock, MapPin, BookOpen, Heart, Star, ArrowRight, Compass, ChevronRight, Sun, Moon, Sunrise, Cloud, Thermometer, RefreshCw, Settings } from 'lucide-react';
+import { useTranslations } from '@/lib/translations';
 
 interface HomePageProps {
   onPageChange?: (page: string) => void;
@@ -15,6 +16,9 @@ export default function HomePage({ onPageChange }: HomePageProps) {
   const [hijriDate, setHijriDate] = useState<string>('');
   const [ayahIndex, setAyahIndex] = useState(0);
   const [hadithIndex, setHadithIndex] = useState(0);
+  
+  const t = useTranslations();
+  const language = localStorage.getItem('app-language') || 'arabic';
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -49,19 +53,19 @@ export default function HomePage({ onPageChange }: HomePageProps) {
   // ترحيب ديناميكي حسب الوقت
   const getGreeting = () => {
     const hour = currentTime.getHours();
-    if (hour < 12) return { ar: 'صباح الخير', en: 'Good Morning' };
-    if (hour < 17) return { ar: 'مساء الخير', en: 'Good Afternoon' };
-    return { ar: 'مساء النور', en: 'Good Evening' };
+    if (hour < 12) return { ar: t.goodMorning, en: 'Good Morning' };
+    if (hour < 17) return { ar: t.goodAfternoon, en: 'Good Afternoon' };
+    return { ar: t.goodEvening, en: 'Good Evening' };
   };
 
   // أوقات الصلاة المؤقتة - سيتم استبدالها بـ API
   const prayerTimes = [
-    { name: 'الفجر', time: '05:24', nameEn: 'Fajr', passed: true },
-    { name: 'الشروق', time: '06:48', nameEn: 'Sunrise', passed: true },
-    { name: 'الظهر', time: '12:15', nameEn: 'Dhuhr', passed: false, current: true },
-    { name: 'العصر', time: '15:42', nameEn: 'Asr', passed: false },
-    { name: 'المغرب', time: '18:33', nameEn: 'Maghrib', passed: false },
-    { name: 'العشاء', time: '20:05', nameEn: 'Isha', passed: false },
+    { name: language === 'english' ? t.fajr : 'الفجر', time: '05:24', nameEn: 'Fajr', passed: true },
+    { name: language === 'english' ? t.sunrise : 'الشروق', time: '06:48', nameEn: 'Sunrise', passed: true },
+    { name: language === 'english' ? t.dhuhr : 'الظهر', time: '12:15', nameEn: 'Dhuhr', passed: false, current: true },
+    { name: language === 'english' ? t.asr : 'العصر', time: '15:42', nameEn: 'Asr', passed: false },
+    { name: language === 'english' ? t.maghrib : 'المغرب', time: '18:33', nameEn: 'Maghrib', passed: false },
+    { name: language === 'english' ? t.isha : 'العشاء', time: '20:05', nameEn: 'Isha', passed: false },
   ];
 
   const currentPrayer = prayerTimes.find(p => p.current);
@@ -181,7 +185,7 @@ export default function HomePage({ onPageChange }: HomePageProps) {
           <div className="bg-white rounded-2xl p-4 border border-border/50 shadow-sm">
             <div className="flex items-center gap-2 mb-2">
               <MapPin className="h-4 w-4 text-islamic-green" />
-              <h3 className="text-sm font-bold text-islamic-green">الموقع</h3>
+              <h3 className="text-sm font-bold text-islamic-green">{t.location}</h3>
             </div>
             <p className="text-xs text-muted-foreground">{location}</p>
           </div>
@@ -189,7 +193,7 @@ export default function HomePage({ onPageChange }: HomePageProps) {
           <div className="bg-white rounded-2xl p-4 border border-border/50 shadow-sm">
             <div className="flex items-center gap-2 mb-2">
               <Cloud className="h-4 w-4 text-islamic-blue" />
-              <h3 className="text-sm font-bold text-islamic-blue">الطقس</h3>
+              <h3 className="text-sm font-bold text-islamic-blue">{t.weather}</h3>
             </div>
             <p className="text-xs text-muted-foreground">{weather.temp}</p>
             <p className="text-xs text-muted-foreground">{weather.condition}</p>

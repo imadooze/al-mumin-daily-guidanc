@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Moon, Sun, Home, BookOpen, Clock, Compass, Heart, Menu } from 'lucide-react';
+import { useTranslations } from '@/lib/translations';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -9,7 +10,15 @@ interface LayoutProps {
 }
 
 export default function Layout({ children, currentPage = 'home', onPageChange }: LayoutProps) {
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem('dark-mode');
+    return saved ? JSON.parse(saved) : false;
+  });
+  const [language, setLanguage] = useState(() => {
+    return localStorage.getItem('app-language') || 'arabic';
+  });
+  
+  const t = useTranslations();
 
   const toggleDarkMode = () => {
     const newDarkMode = !darkMode;
@@ -19,15 +28,41 @@ export default function Layout({ children, currentPage = 'home', onPageChange }:
     } else {
       document.documentElement.classList.remove('dark');
     }
+    localStorage.setItem('dark-mode', JSON.stringify(newDarkMode));
   };
 
   const navItems = [
-    { id: 'home', label: 'الرئيسية', icon: Home, labelEn: 'Home' },
-    { id: 'quran', label: 'القرآن', icon: BookOpen, labelEn: 'Quran' },
-    { id: 'prayer-times', label: 'الصلاة', icon: Clock, labelEn: 'Prayer' },
-    { id: 'azkar', label: 'الأذكار', icon: Heart, labelEn: 'Azkar' },
-    { id: 'more', label: 'المزيد', icon: Menu, labelEn: 'More' },
+    { id: 'home', label: t.home, icon: Home },
+    { id: 'quran', label: t.quran, icon: BookOpen },
+    { id: 'prayer-times', label: t.prayer, icon: Clock },
+    { id: 'azkar', label: t.azkar, icon: Heart },
+    { id: 'more', label: t.more, icon: Menu },
   ];
+
+  // تطبيق الإعدادات عند تحميل المكون
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    }
+    if (language === 'english') {
+      document.documentElement.setAttribute('dir', 'ltr');
+      document.documentElement.setAttribute('lang', 'en');
+    } else {
+      document.documentElement.setAttribute('dir', 'rtl');
+      document.documentElement.setAttribute('lang', 'ar');
+    }
+  }, [darkMode, language]);
+
+  // الاستماع لتغييرات اللغة
+  useEffect(() => {
+    const handleLanguageChange = () => {
+      const newLanguage = localStorage.getItem('app-language') || 'arabic';
+      setLanguage(newLanguage);
+    };
+    
+    window.addEventListener('storage', handleLanguageChange);
+    return () => window.removeEventListener('storage', handleLanguageChange);
+  }, []);
 
   const handleNavClick = (pageId: string) => {
     if (onPageChange) {
@@ -45,8 +80,8 @@ export default function Layout({ children, currentPage = 'home', onPageChange }:
               <Compass className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-foreground">الـمُؤمِن</h1>
-              <p className="text-sm text-muted-foreground">Al-Mumin</p>
+              <h1 className="text-xl font-bold text-foreground">{t.appName}</h1>
+              <p className="text-sm text-muted-foreground">{t.appSubtitle}</p>
             </div>
           </div>
 

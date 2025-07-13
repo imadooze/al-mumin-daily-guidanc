@@ -92,25 +92,37 @@ export default function HadithPage({ onPageChange }: HadithPageProps) {
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
+                {/* نص الحديث */}
                 <div className="text-center">
                   <div className="arabic-text text-lg leading-relaxed p-6 bg-gradient-to-br from-islamic-green/5 to-islamic-blue/5 rounded-2xl border border-islamic-green/10">
-                    {currentHadith.hadith}
+                    <div className="text-right mb-4">
+                      <span className="text-islamic-green font-semibold">قال رسول الله ﷺ:</span>
+                    </div>
+                    <div className="text-base leading-loose">
+                      "{currentHadith.hadith}"
+                    </div>
                   </div>
                 </div>
                 
-                <div className="text-center space-y-2">
-                  <p className="text-sm text-muted-foreground">
-                    المصدر: <span className="font-semibold text-islamic-blue">{currentHadith.book}</span>
-                  </p>
+                {/* معلومات الحديث */}
+                <div className="bg-white/50 rounded-xl p-4 space-y-3">
                   {currentHadith.narrator && (
-                    <p className="text-sm text-muted-foreground">
-                      الراوي: <span className="font-semibold text-islamic-green">{currentHadith.narrator}</span>
-                    </p>
+                    <div className="text-center">
+                      <span className="text-sm text-muted-foreground">رواه: </span>
+                      <span className="font-semibold text-islamic-green">{currentHadith.narrator} رضي الله عنه</span>
+                    </div>
                   )}
+                  
+                  <div className="text-center">
+                    <span className="text-sm text-muted-foreground">المصدر: </span>
+                    <span className="font-semibold text-islamic-blue">{currentHadith.book}</span>
+                  </div>
+                  
                   {currentHadith.reference && (
-                    <p className="text-xs text-muted-foreground">
-                      المرجع: {currentHadith.reference}
-                    </p>
+                    <div className="text-center">
+                      <span className="text-xs text-muted-foreground">المرجع: </span>
+                      <span className="text-xs text-muted-foreground">{currentHadith.reference}</span>
+                    </div>
                   )}
                 </div>
               </CardContent>

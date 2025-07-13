@@ -44,12 +44,16 @@ export default function SettingsPage({ onPageChange }: SettingsPageProps) {
       document.documentElement.setAttribute('lang', 'en');
       // حفظ اللغة في التخزين المحلي
       localStorage.setItem('app-language', 'english');
-      // يمكن إضافة ترجمة النصوص هنا
     } else {
       document.documentElement.setAttribute('dir', 'rtl');
       document.documentElement.setAttribute('lang', 'ar');
       localStorage.setItem('app-language', 'arabic');
     }
+    
+    // إعادة تحميل الصفحة لتطبيق الترجمات
+    setTimeout(() => {
+      window.location.reload();
+    }, 300);
   };
 
   const handleNotificationToggle = (type: string) => {
