@@ -14,7 +14,15 @@ interface HomePageProps {
 export default function HomePage({ onPageChange }: HomePageProps) {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [location, setLocation] = useState<string>('جاري تحديد الموقع...');
-  const [weather, setWeather] = useState<WeatherData | null>(null);
+  const [weather, setWeather] = useState<WeatherData>({
+    temp: 0,
+    condition: 'Loading...',
+    conditionAr: 'جاري التحميل...',
+    humidity: 0,
+    windSpeed: 0,
+    icon: '',
+    city: ''
+  });
   const [hijriDate, setHijriDate] = useState<string>('');
   const [ayahIndex, setAyahIndex] = useState(0);
   const [hadithIndex, setHadithIndex] = useState(0);
@@ -357,10 +365,10 @@ export default function HomePage({ onPageChange }: HomePageProps) {
               <h3 className="text-sm font-bold text-islamic-blue">{t.weather}</h3>
             </div>
             <p className="text-xs text-muted-foreground">
-              {weather ? `${weather.temp}°` : '--°'}
+              {weather.temp > 0 ? `${weather.temp}°` : '--°'}
             </p>
             <p className="text-xs text-muted-foreground">
-              {weather ? (language === 'english' ? weather.condition : weather.conditionAr) : 'جاري التحميل...'}
+              {language === 'english' ? weather.condition : weather.conditionAr}
             </p>
           </div>
         </div>
