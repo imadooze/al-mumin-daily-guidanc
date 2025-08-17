@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Clock, MapPin, BookOpen, Heart, Star, ArrowRight, Compass, ChevronRight, Sun, Moon, Sunrise, Cloud, Thermometer, RefreshCw, Settings } from 'lucide-react';
+import { Clock, MapPin, BookOpen, Heart, Star, ArrowRight, Compass, ChevronRight, Sun, Moon, Sunrise, Cloud, Thermometer, RefreshCw, Settings, Volume2, VolumeX } from 'lucide-react';
 import { useTranslations } from '@/lib/translations';
 import { getPrayerTimes, getCurrentLocation, PrayerData, LocationInfo } from '@/lib/prayer-api';
 import { getWeatherByCoordinates, getDemoWeatherData, WeatherData } from '@/lib/weather-api';
+import { AdhanService } from '@/lib/adhan-service';
 
 interface HomePageProps {
   onPageChange?: (page: string) => void;
@@ -29,6 +30,9 @@ export default function HomePage({ onPageChange }: HomePageProps) {
   const [prayerData, setPrayerData] = useState<PrayerData | null>(null);
   const [locationInfo, setLocationInfo] = useState<LocationInfo | null>(null);
   const [loading, setLoading] = useState(true);
+  const [adhanEnabled, setAdhanEnabled] = useState(true);
+  const [showAdhanNotification, setShowAdhanNotification] = useState(false);
+  const [currentAdhanPrayer, setCurrentAdhanPrayer] = useState('');
   
   const t = useTranslations();
   const language = localStorage.getItem('app-language') || 'arabic';
@@ -83,6 +87,34 @@ export default function HomePage({ onPageChange }: HomePageProps) {
   useEffect(() => {
     loadLocationAndPrayers();
   }, []);
+
+  // تهيئة نظام الأذان
+  useEffect(() => {
+    const adhanService = AdhanService.getInstance();
+    
+    // طلب إذن الإشعارات
+    adhanService.requestNotificationPermission();
+    
+    // تعيين callback للأذان
+    adhanService.setAdhanCallback((prayerName) => {
+      setCurrentAdhanPrayer(prayerName);
+      setShowAdhanNotification(true);
+      
+      // إخفاء الإشعار بعد 10 ثوانٍ
+      setTimeout(() => {
+        setShowAdhanNotification(false);
+      }, 10000);
+    });
+
+    // بدء مراقبة أوقات الصلاة عندما تكون البيانات متاحة
+    if (prayerData) {
+      adhanService.startPrayerMonitoring(prayerData);
+    }
+
+    return () => {
+      adhanService.stopPrayerMonitoring();
+    };
+  }, [prayerData]);
 
   // تحديث الوقت كل ثانية
   useEffect(() => {
@@ -284,6 +316,18 @@ export default function HomePage({ onPageChange }: HomePageProps) {
     onPageChange?.('settings');
   };
 
+  const toggleAdhan = () => {
+    const adhanService = AdhanService.getInstance();
+    const newSettings = adhanService.getSettings();
+    newSettings.enabled = !newSettings.enabled;
+    adhanService.updateSettings(newSettings);
+    setAdhanEnabled(newSettings.enabled);
+  };
+
+  const dismissAdhanNotification = () => {
+    setShowAdhanNotification(false);
+  };
+
   const greeting = getGreeting();
 
   // إذا كانت البيانات لا تزال تُحمل
@@ -300,6 +344,32 @@ export default function HomePage({ onPageChange }: HomePageProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-islamic-cream/20 to-background">
+      {/* إشعار الأذان */}
+      {showAdhanNotification && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 max-w-sm w-full mx-4">
+          <div className="bg-islamic-green text-white rounded-2xl p-4 shadow-2xl border border-white/20 animate-pulse">
+            <div className="text-center space-y-2">
+              <Volume2 className="h-8 w-8 mx-auto mb-2" />
+              <h3 className="text-lg font-bold font-arabic">حان موعد الأذان</h3>
+              <p className="text-sm">
+                {currentAdhanPrayer === 'fajr' && 'صلاة الفجر'}
+                {currentAdhanPrayer === 'dhuhr' && 'صلاة الظهر'}
+                {currentAdhanPrayer === 'asr' && 'صلاة العصر'}
+                {currentAdhanPrayer === 'maghrib' && 'صلاة المغرب'}
+                {currentAdhanPrayer === 'isha' && 'صلاة العشاء'}
+              </p>
+              <Button 
+                onClick={dismissAdhanNotification}
+                className="bg-white/20 hover:bg-white/30 text-white text-xs px-3 py-1 mt-2"
+                size="sm"
+              >
+                إغلاق
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="space-y-6 p-4 max-w-md mx-auto">
         {/* هيدر التطبيق مع الترحيب */}
         <div className="relative overflow-hidden rounded-3xl p-6 islamic-gradient text-white">
@@ -312,6 +382,19 @@ export default function HomePage({ onPageChange }: HomePageProps) {
             variant="ghost"
           >
             <Settings className="h-5 w-5 text-white" />
+          </Button>
+
+          {/* زر التحكم في الأذان */}
+          <Button 
+            onClick={toggleAdhan}
+            className="absolute top-4 right-4 bg-white/20 hover:bg-white/30 border-none p-2 h-auto"
+            variant="ghost"
+          >
+            {adhanEnabled ? (
+              <Volume2 className="h-5 w-5 text-white" />
+            ) : (
+              <VolumeX className="h-5 w-5 text-white" />
+            )}
           </Button>
 
           <div className="relative z-10 text-center space-y-3">
