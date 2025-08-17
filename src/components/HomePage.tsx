@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Clock, MapPin, BookOpen, Heart, Star, ArrowRight, Compass, ChevronRight, Sun, Moon, Sunrise, Cloud, Thermometer, RefreshCw, Settings } from 'lucide-react';
 import { useTranslations } from '@/lib/translations';
+import { getPrayerTimes, getCurrentLocation, PrayerData, LocationInfo } from '@/lib/prayer-api';
 
 interface HomePageProps {
   onPageChange?: (page: string) => void;
@@ -16,36 +17,53 @@ export default function HomePage({ onPageChange }: HomePageProps) {
   const [hijriDate, setHijriDate] = useState<string>('');
   const [ayahIndex, setAyahIndex] = useState(0);
   const [hadithIndex, setHadithIndex] = useState(0);
+  const [prayerData, setPrayerData] = useState<PrayerData | null>(null);
+  const [locationInfo, setLocationInfo] = useState<LocationInfo | null>(null);
+  const [loading, setLoading] = useState(true);
   
   const t = useTranslations();
   const language = localStorage.getItem('app-language') || 'arabic';
 
+  // جلب الموقع وأوقات الصلاة
+  useEffect(() => {
+    const loadLocationAndPrayers = async () => {
+      try {
+        setLoading(true);
+        const locationData = await getCurrentLocation();
+        setLocationInfo(locationData);
+        setLocation(`${locationData.city}, ${locationData.country}`);
+        
+        // جلب أوقات الصلاة
+        const prayers = await getPrayerTimes(locationData.latitude, locationData.longitude);
+        if (prayers) {
+          setPrayerData(prayers);
+          // تحديث التاريخ الهجري من API
+          setHijriDate(`${prayers.date.hijri.date} ${prayers.date.hijri.month.ar} ${prayers.date.hijri.year} هـ`);
+        }
+      } catch (error) {
+        console.error('خطأ في جلب البيانات:', error);
+        setLocation('غير متاح');
+        // استخدام التاريخ الهجري التقريبي كـ fallback
+        const gregorianDate = new Date();
+        const hijriYear = gregorianDate.getFullYear() - 579;
+        const hijriMonth = [
+          'محرم', 'صفر', 'ربيع الأول', 'ربيع الثاني', 'جمادى الأولى', 'جمادى الثانية',
+          'رجب', 'شعبان', 'رمضان', 'شوال', 'ذو القعدة', 'ذو الحجة'
+        ][gregorianDate.getMonth()];
+        setHijriDate(`${gregorianDate.getDate()} ${hijriMonth} ${hijriYear} هـ`);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadLocationAndPrayers();
+  }, []);
+
+  // تحديث الوقت كل ثانية
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
-
-    // محدد الموقع
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          setLocation(`${latitude.toFixed(2)}, ${longitude.toFixed(2)}`);
-          // هنا يمكن إضافة استدعاء API للطقس
-          setWeather({ temp: '24°C', condition: 'مشمس جزئياً' });
-        },
-        () => setLocation('غير متاح')
-      );
-    }
-
-    // التاريخ الهجري (تقريبي)
-    const gregorianDate = new Date();
-    const hijriYear = gregorianDate.getFullYear() - 579;
-    const hijriMonth = [
-      'محرم', 'صفر', 'ربيع الأول', 'ربيع الثاني', 'جمادى الأولى', 'جمادى الثانية',
-      'رجب', 'شعبان', 'رمضان', 'شوال', 'ذو القعدة', 'ذو الحجة'
-    ][gregorianDate.getMonth()];
-    setHijriDate(`${gregorianDate.getDate()} ${hijriMonth} ${hijriYear} هـ`);
 
     return () => clearInterval(timer);
   }, []);
@@ -58,18 +76,127 @@ export default function HomePage({ onPageChange }: HomePageProps) {
     return { ar: t.goodEvening, en: 'Good Evening' };
   };
 
-  // أوقات الصلاة المؤقتة - سيتم استبدالها بـ API
-  const prayerTimes = [
-    { name: language === 'english' ? t.fajr : 'الفجر', time: '05:24', nameEn: 'Fajr', passed: true },
-    { name: language === 'english' ? t.sunrise : 'الشروق', time: '06:48', nameEn: 'Sunrise', passed: true },
-    { name: language === 'english' ? t.dhuhr : 'الظهر', time: '12:15', nameEn: 'Dhuhr', passed: false, current: true },
-    { name: language === 'english' ? t.asr : 'العصر', time: '15:42', nameEn: 'Asr', passed: false },
-    { name: language === 'english' ? t.maghrib : 'المغرب', time: '18:33', nameEn: 'Maghrib', passed: false },
-    { name: language === 'english' ? t.isha : 'العشاء', time: '20:05', nameEn: 'Isha', passed: false },
-  ];
+  // تحويل أوقات الصلاة من API إلى تنسيق قابل للاستخدام
+  const getPrayerTimesArray = () => {
+    if (!prayerData) {
+      // أوقات افتراضية في حالة عدم توفر البيانات
+      return [
+        { name: language === 'english' ? t.fajr : 'الفجر', time: '05:30', nameEn: 'Fajr', passed: false, current: false },
+        { name: language === 'english' ? t.sunrise : 'الشروق', time: '06:50', nameEn: 'Sunrise', passed: false, current: false },
+        { name: language === 'english' ? t.dhuhr : 'الظهر', time: '12:15', nameEn: 'Dhuhr', passed: false, current: false },
+        { name: language === 'english' ? t.asr : 'العصر', time: '15:30', nameEn: 'Asr', passed: false, current: false },
+        { name: language === 'english' ? t.maghrib : 'المغرب', time: '18:00', nameEn: 'Maghrib', passed: false, current: false },
+        { name: language === 'english' ? t.isha : 'العشاء', time: '19:30', nameEn: 'Isha', passed: false, current: false },
+      ];
+    }
 
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+
+    const prayers = [
+      { 
+        name: language === 'english' ? t.fajr : 'الفجر', 
+        time: prayerData.timings.Fajr.substring(0, 5), 
+        nameEn: 'Fajr',
+        rawTime: prayerData.timings.Fajr
+      },
+      { 
+        name: language === 'english' ? t.sunrise : 'الشروق', 
+        time: prayerData.timings.Sunrise.substring(0, 5), 
+        nameEn: 'Sunrise',
+        rawTime: prayerData.timings.Sunrise
+      },
+      { 
+        name: language === 'english' ? t.dhuhr : 'الظهر', 
+        time: prayerData.timings.Dhuhr.substring(0, 5), 
+        nameEn: 'Dhuhr',
+        rawTime: prayerData.timings.Dhuhr
+      },
+      { 
+        name: language === 'english' ? t.asr : 'العصر', 
+        time: prayerData.timings.Asr.substring(0, 5), 
+        nameEn: 'Asr',
+        rawTime: prayerData.timings.Asr
+      },
+      { 
+        name: language === 'english' ? t.maghrib : 'المغرب', 
+        time: prayerData.timings.Maghrib.substring(0, 5), 
+        nameEn: 'Maghrib',
+        rawTime: prayerData.timings.Maghrib
+      },
+      { 
+        name: language === 'english' ? t.isha : 'العشاء', 
+        time: prayerData.timings.Isha.substring(0, 5), 
+        nameEn: 'Isha',
+        rawTime: prayerData.timings.Isha
+      },
+    ];
+
+    // تحديد حالة كل صلاة (مرت، حالية، قادمة)
+    return prayers.map((prayer, index) => {
+      const [hour, minute] = prayer.time.split(':').map(Number);
+      const prayerTime = hour * 60 + minute;
+      const currentTime = currentHour * 60 + currentMinute;
+      
+      let passed = false;
+      let current = false;
+      
+      // تحديد إذا كانت الصلاة قد مرت
+      passed = currentTime > prayerTime;
+      
+      // تحديد الصلاة الحالية (القادمة التالية)
+      if (!passed && index > 0) {
+        const prevPrayer = prayers[index - 1];
+        const [prevHour, prevMinute] = prevPrayer.time.split(':').map(Number);
+        const prevPrayerTime = prevHour * 60 + prevMinute;
+        current = currentTime > prevPrayerTime;
+      } else if (index === 0) {
+        // للفجر، نتحقق إذا كان الوقت الحالي بعد صلاة العشاء
+        const ishaTime = prayers[5];
+        const [ishaHour, ishaMinute] = ishaTime.time.split(':').map(Number);
+        const ishaPrayerTime = ishaHour * 60 + ishaMinute;
+        current = currentTime > ishaPrayerTime || currentTime < prayerTime;
+      }
+      
+      return {
+        ...prayer,
+        passed,
+        current
+      };
+    });
+  };
+
+  const prayerTimes = getPrayerTimesArray();
   const currentPrayer = prayerTimes.find(p => p.current);
-  const nextPrayer = prayerTimes.find(p => !p.passed && !p.current);
+  const nextPrayer = prayerTimes.find(p => !p.passed && !p.current) || prayerTimes[0]; // إذا لم توجد صلاة قادمة، فالفجر هو التالي
+
+  // حساب الوقت المتبقي للصلاة القادمة
+  const getTimeUntilNextPrayer = () => {
+    if (!nextPrayer) return 'غير محدد';
+    
+    const now = new Date();
+    const [hour, minute] = nextPrayer.time.split(':').map(Number);
+    const prayerTime = new Date();
+    prayerTime.setHours(hour, minute, 0, 0);
+    
+    // إذا كانت الصلاة في اليوم التالي (مثل الفجر)
+    if (prayerTime <= now) {
+      prayerTime.setDate(prayerTime.getDate() + 1);
+    }
+    
+    const timeDiff = prayerTime.getTime() - now.getTime();
+    const hours = Math.floor(timeDiff / (1000 * 60 * 60));
+    const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (hours > 0) {
+      return `${hours} ساعة و ${minutes} دقيقة`;
+    } else if (minutes > 0) {
+      return `${minutes} دقيقة`;
+    } else {
+      return 'الآن';
+    }
+  };
 
   // آيات متعددة
   const verses = [
@@ -214,7 +341,7 @@ export default function HomePage({ onPageChange }: HomePageProps) {
                 <div className="text-center">
                   <Clock className="h-8 w-8 text-islamic-green mb-2 mx-auto" />
                   <Badge className="bg-islamic-green/10 text-islamic-green border-islamic-green/20 text-xs">
-                    بعد ساعتين
+                    {getTimeUntilNextPrayer()}
                   </Badge>
                 </div>
               </div>
