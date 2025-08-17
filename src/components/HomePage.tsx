@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Clock, MapPin, BookOpen, Heart, Star, ArrowRight, Compass, ChevronRight, Sun, Moon, Sunrise, Cloud, Thermometer, RefreshCw, Settings } from 'lucide-react';
 import { useTranslations } from '@/lib/translations';
 import { getPrayerTimes, getCurrentLocation, PrayerData, LocationInfo } from '@/lib/prayer-api';
+import { getWeatherByCoordinates, getDemoWeatherData, WeatherData } from '@/lib/weather-api';
 
 interface HomePageProps {
   onPageChange?: (page: string) => void;
@@ -13,7 +14,7 @@ interface HomePageProps {
 export default function HomePage({ onPageChange }: HomePageProps) {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [location, setLocation] = useState<string>('جاري تحديد الموقع...');
-  const [weather, setWeather] = useState({ temp: '--', condition: 'جاري التحميل...' });
+  const [weather, setWeather] = useState<WeatherData | null>(null);
   const [hijriDate, setHijriDate] = useState<string>('');
   const [ayahIndex, setAyahIndex] = useState(0);
   const [hadithIndex, setHadithIndex] = useState(0);
@@ -25,37 +26,53 @@ export default function HomePage({ onPageChange }: HomePageProps) {
   const language = localStorage.getItem('app-language') || 'arabic';
 
   // جلب الموقع وأوقات الصلاة
-  useEffect(() => {
-    const loadLocationAndPrayers = async () => {
-      try {
-        setLoading(true);
-        const locationData = await getCurrentLocation();
-        setLocationInfo(locationData);
-        setLocation(`${locationData.city}, ${locationData.country}`);
-        
-        // جلب أوقات الصلاة
-        const prayers = await getPrayerTimes(locationData.latitude, locationData.longitude);
-        if (prayers) {
-          setPrayerData(prayers);
-          // تحديث التاريخ الهجري من API
-          setHijriDate(`${prayers.date.hijri.date} ${prayers.date.hijri.month.ar} ${prayers.date.hijri.year} هـ`);
-        }
-      } catch (error) {
-        console.error('خطأ في جلب البيانات:', error);
-        setLocation('غير متاح');
-        // استخدام التاريخ الهجري التقريبي كـ fallback
-        const gregorianDate = new Date();
-        const hijriYear = gregorianDate.getFullYear() - 579;
-        const hijriMonth = [
-          'محرم', 'صفر', 'ربيع الأول', 'ربيع الثاني', 'جمادى الأولى', 'جمادى الثانية',
-          'رجب', 'شعبان', 'رمضان', 'شوال', 'ذو القعدة', 'ذو الحجة'
-        ][gregorianDate.getMonth()];
-        setHijriDate(`${gregorianDate.getDate()} ${hijriMonth} ${hijriYear} هـ`);
-      } finally {
-        setLoading(false);
+  const loadLocationAndPrayers = async () => {
+    try {
+      setLoading(true);
+      const locationData = await getCurrentLocation();
+      setLocationInfo(locationData);
+      setLocation(`${locationData.city}, ${locationData.country}`);
+      
+      // جلب أوقات الصلاة
+      const prayers = await getPrayerTimes(locationData.latitude, locationData.longitude);
+      if (prayers) {
+        setPrayerData(prayers);
+        // تحديث التاريخ الهجري من API
+        setHijriDate(`${prayers.date.hijri.date} ${prayers.date.hijri.month.ar} ${prayers.date.hijri.year} هـ`);
       }
-    };
 
+      // جلب بيانات الطقس
+      try {
+        const weatherData = await getWeatherByCoordinates(locationData.latitude, locationData.longitude);
+        if (weatherData) {
+          setWeather(weatherData);
+        } else {
+          // في حالة فشل API الطقس، استخدم بيانات تجريبية
+          setWeather(getDemoWeatherData());
+        }
+      } catch (weatherError) {
+        console.error('خطأ في جلب بيانات الطقس:', weatherError);
+        setWeather(getDemoWeatherData());
+      }
+
+    } catch (error) {
+      console.error('خطأ في جلب البيانات:', error);
+      setLocation('غير متاح');
+      setWeather(getDemoWeatherData());
+      // استخدام التاريخ الهجري التقريبي كـ fallback
+      const gregorianDate = new Date();
+      const hijriYear = gregorianDate.getFullYear() - 579;
+      const hijriMonth = [
+        'محرم', 'صفر', 'ربيع الأول', 'ربيع الثاني', 'جمادى الأولى', 'جمادى الثانية',
+        'رجب', 'شعبان', 'رمضان', 'شوال', 'ذو القعدة', 'ذو الحجة'
+      ][gregorianDate.getMonth()];
+      setHijriDate(`${gregorianDate.getDate()} ${hijriMonth} ${hijriYear} هـ`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     loadLocationAndPrayers();
   }, []);
 
@@ -250,11 +267,28 @@ export default function HomePage({ onPageChange }: HomePageProps) {
     setHadithIndex((prev) => (prev + 1) % hadiths.length);
   };
 
+  const refreshAllData = async () => {
+    setLoading(true);
+    await loadLocationAndPrayers();
+  };
+
   const handleSettingsClick = () => {
     onPageChange?.('settings');
   };
 
   const greeting = getGreeting();
+
+  // إذا كانت البيانات لا تزال تُحمل
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-islamic-cream/20 to-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <RefreshCw className="h-12 w-12 text-islamic-green animate-spin mx-auto" />
+          <p className="text-lg font-arabic text-muted-foreground">جاري تحميل البيانات...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-islamic-cream/20 to-background">
@@ -322,8 +356,12 @@ export default function HomePage({ onPageChange }: HomePageProps) {
               <Cloud className="h-4 w-4 text-islamic-blue" />
               <h3 className="text-sm font-bold text-islamic-blue">{t.weather}</h3>
             </div>
-            <p className="text-xs text-muted-foreground">{weather.temp}</p>
-            <p className="text-xs text-muted-foreground">{weather.condition}</p>
+            <p className="text-xs text-muted-foreground">
+              {weather ? `${weather.temp}°` : '--°'}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {weather ? (language === 'english' ? weather.condition : weather.conditionAr) : 'جاري التحميل...'}
+            </p>
           </div>
         </div>
 
@@ -368,14 +406,23 @@ export default function HomePage({ onPageChange }: HomePageProps) {
           ))}
         </div>
 
-        {/* زر تحديث المحتوى */}
-        <div className="flex justify-center">
+        {/* أزرار التحديث */}
+        <div className="flex justify-center gap-3">
           <Button 
             onClick={refreshContent}
-            className="bg-islamic-green hover:bg-islamic-green/90 text-white rounded-xl px-6 py-2 flex items-center gap-2"
+            className="bg-islamic-green hover:bg-islamic-green/90 text-white rounded-xl px-4 py-2 flex items-center gap-2"
           >
             <RefreshCw className="h-4 w-4" />
             <span className="font-arabic">تحديث المحتوى</span>
+          </Button>
+          
+          <Button 
+            onClick={refreshAllData}
+            className="bg-islamic-blue hover:bg-islamic-blue/90 text-white rounded-xl px-4 py-2 flex items-center gap-2"
+            disabled={loading}
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            <span className="font-arabic">تحديث البيانات</span>
           </Button>
         </div>
 
