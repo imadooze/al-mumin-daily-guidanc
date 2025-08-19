@@ -40,7 +40,11 @@ export default function HomePage({ onPageChange }: HomePageProps) {
   // جلب الموقع وأوقات الصلاة
   const loadLocationAndPrayers = async () => {
     try {
-      setLoading(true);
+      // عدم إظهار loading إذا كانت البيانات موجودة مسبقاً
+      if (!prayerData) {
+        setLoading(true);
+      }
+      
       const locationData = await getCurrentLocation();
       setLocationInfo(locationData);
       setLocation(`${locationData.city}, ${locationData.country}`);
@@ -53,39 +57,52 @@ export default function HomePage({ onPageChange }: HomePageProps) {
         setHijriDate(`${prayers.date.hijri.date} ${prayers.date.hijri.month.ar} ${prayers.date.hijri.year} هـ`);
       }
 
-      // جلب بيانات الطقس
-      try {
-        const weatherData = await getWeatherByCoordinates(locationData.latitude, locationData.longitude);
-        if (weatherData) {
-          setWeather(weatherData);
-        } else {
-          // في حالة فشل API الطقس، استخدم بيانات تجريبية
+      // جلب بيانات الطقس فقط إذا لم تكن موجودة
+      if (weather.temp === 0) {
+        try {
+          const weatherData = await getWeatherByCoordinates(locationData.latitude, locationData.longitude);
+          if (weatherData) {
+            setWeather(weatherData);
+          } else {
+            setWeather(getDemoWeatherData());
+          }
+        } catch (weatherError) {
+          console.error('خطأ في جلب بيانات الطقس:', weatherError);
           setWeather(getDemoWeatherData());
         }
-      } catch (weatherError) {
-        console.error('خطأ في جلب بيانات الطقس:', weatherError);
-        setWeather(getDemoWeatherData());
       }
 
     } catch (error) {
       console.error('خطأ في جلب البيانات:', error);
       setLocation('غير متاح');
-      setWeather(getDemoWeatherData());
+      if (weather.temp === 0) {
+        setWeather(getDemoWeatherData());
+      }
       // استخدام التاريخ الهجري التقريبي كـ fallback
-      const gregorianDate = new Date();
-      const hijriYear = gregorianDate.getFullYear() - 579;
-      const hijriMonth = [
-        'محرم', 'صفر', 'ربيع الأول', 'ربيع الثاني', 'جمادى الأولى', 'جمادى الثانية',
-        'رجب', 'شعبان', 'رمضان', 'شوال', 'ذو القعدة', 'ذو الحجة'
-      ][gregorianDate.getMonth()];
-      setHijriDate(`${gregorianDate.getDate()} ${hijriMonth} ${hijriYear} هـ`);
+      if (!hijriDate) {
+        const gregorianDate = new Date();
+        const hijriYear = gregorianDate.getFullYear() - 579;
+        const hijriMonth = [
+          'محرم', 'صفر', 'ربيع الأول', 'ربيع الثاني', 'جمادى الأولى', 'جمادى الثانية',
+          'رجب', 'شعبان', 'رمضان', 'شوال', 'ذو القعدة', 'ذو الحجة'
+        ][gregorianDate.getMonth()];
+        setHijriDate(`${gregorianDate.getDate()} ${hijriMonth} ${hijriYear} هـ`);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    // تحديد الموقع تلقائياً عند تحميل التطبيق
     loadLocationAndPrayers();
+    
+    // تحديث البيانات كل 30 ثانية للحصول على معلومات دقيقة
+    const interval = setInterval(() => {
+      loadLocationAndPrayers();
+    }, 30000);
+    
+    return () => clearInterval(interval);
   }, []);
 
   // تهيئة نظام الأذان
@@ -202,20 +219,6 @@ export default function HomePage({ onPageChange }: HomePageProps) {
       // تحديد إذا كانت الصلاة قد مرت
       passed = currentTime > prayerTime;
       
-      // تحديد الصلاة الحالية (القادمة التالية)
-      if (!passed && index > 0) {
-        const prevPrayer = prayers[index - 1];
-        const [prevHour, prevMinute] = prevPrayer.time.split(':').map(Number);
-        const prevPrayerTime = prevHour * 60 + prevMinute;
-        current = currentTime > prevPrayerTime;
-      } else if (index === 0) {
-        // للفجر، نتحقق إذا كان الوقت الحالي بعد صلاة العشاء
-        const ishaTime = prayers[5];
-        const [ishaHour, ishaMinute] = ishaTime.time.split(':').map(Number);
-        const ishaPrayerTime = ishaHour * 60 + ishaMinute;
-        current = currentTime > ishaPrayerTime || currentTime < prayerTime;
-      }
-      
       return {
         ...prayer,
         passed,
@@ -225,8 +228,28 @@ export default function HomePage({ onPageChange }: HomePageProps) {
   };
 
   const prayerTimes = getPrayerTimesArray();
-  const currentPrayer = prayerTimes.find(p => p.current);
-  const nextPrayer = prayerTimes.find(p => !p.passed && !p.current) || prayerTimes[0]; // إذا لم توجد صلاة قادمة، فالفجر هو التالي
+  
+  // تحديد الصلاة القادمة بشكل أكثر دقة
+  const getNextPrayer = () => {
+    const now = new Date();
+    const currentTime = now.getHours() * 60 + now.getMinutes();
+    
+    // البحث عن أول صلاة لم تمر بعد
+    for (let i = 0; i < prayerTimes.length; i++) {
+      const prayer = prayerTimes[i];
+      const [hour, minute] = prayer.time.split(':').map(Number);
+      const prayerTime = hour * 60 + minute;
+      
+      if (currentTime < prayerTime) {
+        return prayer;
+      }
+    }
+    
+    // إذا مرت جميع الصلوات، فالصلاة القادمة هي فجر اليوم التالي
+    return prayerTimes[0];
+  };
+  
+  const nextPrayer = getNextPrayer();
 
   // حساب الوقت المتبقي للصلاة القادمة
   const getTimeUntilNextPrayer = () => {
