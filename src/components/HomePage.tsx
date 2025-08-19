@@ -458,53 +458,23 @@ export default function HomePage({ onPageChange }: HomePageProps) {
 
         {/* بطاقة الصلاة القادمة */}
         {nextPrayer && (
-          <div className="relative overflow-hidden rounded-3xl islamic-gradient text-white p-6 shadow-xl">
-            {/* زخارف إسلامية */}
-            <div className="absolute inset-0">
-              <div className="absolute top-2 right-2 w-16 h-16 border border-white/20 rounded-full"></div>
-              <div className="absolute bottom-2 left-2 w-12 h-12 border border-white/20 rounded-full"></div>
-              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-24 h-24 border border-white/10 rounded-full"></div>
-            </div>
-            
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-white to-islamic-cream/30 border border-islamic-green/20 p-4 shadow-lg">
+            <div className="absolute top-0 right-0 w-20 h-20 bg-islamic-green/10 rounded-full -mr-10 -mt-10"></div>
             <div className="relative z-10">
-              {/* رأس البطاقة */}
-              <div className="text-center mb-6">
-                <div className="flex items-center justify-center gap-2 mb-2">
-                  <Clock className="h-6 w-6 text-white" />
-                  <p className="text-sm text-white/90 font-arabic">الصلاة القادمة</p>
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <p className="text-sm text-muted-foreground mb-1">الصلاة القادمة</p>
+                  <h3 className="text-xl font-bold text-islamic-green font-arabic">{nextPrayer.name}</h3>
+                  <p className="text-lg font-mono text-foreground">{nextPrayer.time}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    متبقي: {getTimeUntilNextPrayer()}
+                  </p>
                 </div>
-                <h2 className="text-3xl font-bold font-arabic-display mb-1">{nextPrayer.name}</h2>
-                <div className="text-2xl font-mono bg-white/20 rounded-xl px-4 py-2 inline-block">
-                  {nextPrayer.time}
-                </div>
-              </div>
-
-              {/* الوقت المتبقي */}
-              <div className="text-center mb-4">
-                <div className="bg-white/20 rounded-2xl p-4">
-                  <p className="text-sm text-white/80 mb-1">باقي على الأذان</p>
-                  <div className="text-xl font-bold font-arabic">
-                    {getTimeUntilNextPrayer()}
-                  </div>
-                </div>
-              </div>
-
-              {/* شريط التقدم */}
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs text-white/70">
-                  <span>الآن</span>
-                  <span>{nextPrayer.name}</span>
-                </div>
-                <div className="w-full bg-white/20 rounded-full h-2">
-                  <div 
-                    className="bg-white h-2 rounded-full transition-all duration-1000"
-                    style={{
-                      width: `${Math.min(90, Math.max(10, 
-                        ((new Date().getHours() * 60 + new Date().getMinutes()) / 
-                        (parseInt(nextPrayer.time.split(':')[0]) * 60 + parseInt(nextPrayer.time.split(':')[1]))) * 100
-                      ))}%`
-                    }}
-                  ></div>
+                <div className="text-center">
+                  <Clock className="h-8 w-8 text-islamic-green mb-2 mx-auto" />
+                  <Badge className="bg-islamic-green/10 text-islamic-green border-islamic-green/20 text-xs px-2 py-1">
+                    قريباً
+                  </Badge>
                 </div>
               </div>
             </div>
@@ -513,12 +483,12 @@ export default function HomePage({ onPageChange }: HomePageProps) {
 
         {/* شريط أوقات الصلاة السريع */}
         <div className="grid grid-cols-3 gap-2">
-          {prayerTimes.slice(0, 6).map((prayer, index) => (
+          {prayerTimes.slice(0, 6).map((prayer) => (
             <div
-              key={prayer.name}
-              className={`p-3 rounded-xl text-center transition-all duration-300 ${
+              key={prayer.nameEn}
+              className={`p-3 rounded-xl text-center transition-all duration-200 ${
                 prayer.current
-                  ? 'bg-islamic-green text-white shadow-lg'
+                  ? 'bg-islamic-green text-white shadow-md'
                   : prayer.passed
                   ? 'bg-muted/50 text-muted-foreground'
                   : 'bg-white border border-border hover:border-islamic-green/30'
