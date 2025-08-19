@@ -72,16 +72,16 @@ export default function Layout({ children, currentPage = 'home', onPageChange }:
 
   return (
     <div className="min-h-screen bg-background font-arabic">
-      {/* الشريط العلوي */}
-      <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      {/* الشريط العلوي المحسن */}
+      <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur-lg supports-[backdrop-filter]:bg-background/80 shadow-islamic-soft">
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-primary rounded-full flex items-center justify-center">
+            <div className="w-10 h-10 islamic-gradient rounded-full flex items-center justify-center shadow-islamic-soft">
               <Compass className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-foreground">{t.appName}</h1>
-              <p className="text-sm text-muted-foreground">{t.appSubtitle}</p>
+              <h1 className="text-xl font-bold text-foreground font-arabic-display">{t.appName}</h1>
+              <p className="text-sm text-muted-foreground font-arabic">{t.appSubtitle}</p>
             </div>
           </div>
 
@@ -89,9 +89,13 @@ export default function Layout({ children, currentPage = 'home', onPageChange }:
             variant="ghost"
             size="icon"
             onClick={toggleDarkMode}
-            className="rounded-full"
+            className="rounded-full hover:bg-muted/50 transition-all duration-300 hover:scale-105"
           >
-            {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            {darkMode ? (
+              <Sun className="h-5 w-5 text-primary animate-fade-in" />
+            ) : (
+              <Moon className="h-5 w-5 text-primary animate-fade-in" />
+            )}
           </Button>
         </div>
       </header>
@@ -103,23 +107,29 @@ export default function Layout({ children, currentPage = 'home', onPageChange }:
         </div>
       </main>
 
-      {/* شريط التنقل السفلي */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur border-t border-border supports-[backdrop-filter]:bg-background/80">
+      {/* شريط التنقل السفلي المحسن */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-lg border-t border-border supports-[backdrop-filter]:bg-background/90 shadow-islamic">
         <div className="container">
           <div className="flex items-center justify-around py-2">
             {navItems.map((item) => (
               <Button
                 key={item.id}
                 variant="ghost"
-                className={`flex flex-col items-center gap-1 h-auto py-2 px-3 ${
+                className={`flex flex-col items-center gap-1 h-auto py-3 px-4 rounded-xl transition-all duration-300 ${
                   currentPage === item.id 
-                    ? 'text-primary' 
-                    : 'text-muted-foreground hover:text-foreground'
+                    ? 'text-primary bg-primary/10 scale-105 shadow-islamic-soft' 
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:scale-105'
                 }`}
                 onClick={() => handleNavClick(item.id)}
               >
-                <item.icon className={`h-5 w-5 ${currentPage === item.id ? 'text-primary' : ''}`} />
-                <span className="text-xs font-medium">{item.label}</span>
+                <item.icon className={`h-5 w-5 transition-all duration-300 ${
+                  currentPage === item.id ? 'text-primary scale-110' : ''
+                }`} />
+                <span className={`text-xs font-medium font-arabic transition-all duration-300 ${
+                  currentPage === item.id ? 'font-bold' : ''
+                }`}>
+                  {item.label}
+                </span>
               </Button>
             ))}
           </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,6 +7,8 @@ import { useTranslations } from '@/lib/translations';
 import { getPrayerTimes, getCurrentLocation, PrayerData, LocationInfo } from '@/lib/prayer-api';
 import { getWeatherByCoordinates, getDemoWeatherData, WeatherData } from '@/lib/weather-api';
 import { AdhanService } from '@/lib/adhan-service';
+import { useLocalStorage } from '@/hooks/use-local-storage';
+import { usePrayerMonitor } from '@/hooks/use-prayer-monitor';
 
 interface HomePageProps {
   onPageChange?: (page: string) => void;
@@ -14,8 +16,8 @@ interface HomePageProps {
 
 export default function HomePage({ onPageChange }: HomePageProps) {
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [location, setLocation] = useState<string>('جاري تحديد الموقع...');
-  const [weather, setWeather] = useState<WeatherData>({
+  const [location, setLocation] = useLocalStorage<string>('user-location', 'جاري تحديد الموقع...');
+  const [weather, setWeather] = useLocalStorage<WeatherData>('weather-data', {
     temp: 0,
     condition: 'Loading...',
     conditionAr: 'جاري التحميل...',
@@ -24,18 +26,21 @@ export default function HomePage({ onPageChange }: HomePageProps) {
     icon: '',
     city: ''
   });
-  const [hijriDate, setHijriDate] = useState<string>('');
-  const [ayahIndex, setAyahIndex] = useState(0);
-  const [hadithIndex, setHadithIndex] = useState(0);
+  const [hijriDate, setHijriDate] = useLocalStorage<string>('hijri-date', '');
+  const [ayahIndex, setAyahIndex] = useLocalStorage<number>('current-ayah', 0);
+  const [hadithIndex, setHadithIndex] = useLocalStorage<number>('current-hadith', 0);
   const [prayerData, setPrayerData] = useState<PrayerData | null>(null);
   const [locationInfo, setLocationInfo] = useState<LocationInfo | null>(null);
   const [loading, setLoading] = useState(true);
-  const [adhanEnabled, setAdhanEnabled] = useState(true);
+  const [adhanEnabled, setAdhanEnabled] = useLocalStorage<boolean>('adhan-enabled', true);
   const [showAdhanNotification, setShowAdhanNotification] = useState(false);
   const [currentAdhanPrayer, setCurrentAdhanPrayer] = useState('');
   
   const t = useTranslations();
   const language = localStorage.getItem('app-language') || 'arabic';
+
+  // استخدام hook مراقبة الصلاة
+  const nextPrayerInfo = usePrayerMonitor(prayerData);
 
   // جلب الموقع وأوقات الصلاة
   const loadLocationAndPrayers = async () => {
@@ -97,13 +102,22 @@ export default function HomePage({ onPageChange }: HomePageProps) {
     // تحديد الموقع تلقائياً عند تحميل التطبيق
     loadLocationAndPrayers();
     
-    // تحديث البيانات كل 30 ثانية للحصول على معلومات دقيقة
+    // تحديث البيانات كل دقيقة للحصول على معلومات دقيقة
     const interval = setInterval(() => {
-      loadLocationAndPrayers();
-    }, 30000);
+      // تحديث أوقات الصلاة فقط (بدون تحديث الطقس لتوفير البيانات)
+      if (locationInfo) {
+        getPrayerTimes(locationInfo.latitude, locationInfo.longitude)
+          .then((prayers) => {
+            if (prayers) {
+              setPrayerData(prayers);
+            }
+          })
+          .catch(console.error);
+      }
+    }, 60000); // كل دقيقة
     
     return () => clearInterval(interval);
-  }, []);
+  }, [locationInfo]);
 
   // تهيئة نظام الأذان
   useEffect(() => {
@@ -353,13 +367,18 @@ export default function HomePage({ onPageChange }: HomePageProps) {
 
   const greeting = getGreeting();
 
-  // إذا كانت البيانات لا تزال تُحمل
+  // إذا كانت البيانات لا تزال تُحمل لأول مرة
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-islamic-cream/20 to-background flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <RefreshCw className="h-12 w-12 text-islamic-green animate-spin mx-auto" />
-          <p className="text-lg font-arabic text-muted-foreground">جاري تحميل البيانات...</p>
+        <div className="text-center space-y-4 animate-fade-in">
+          <div className="w-16 h-16 bg-gradient-primary rounded-full flex items-center justify-center mx-auto animate-pulse-islamic">
+            <Compass className="h-8 w-8 text-white" />
+          </div>
+          <div className="space-y-2">
+            <p className="text-lg font-arabic text-foreground">جاري تحميل البيانات...</p>
+            <p className="text-sm text-muted-foreground">الرجاء الانتظار قليلاً</p>
+          </div>
         </div>
       </div>
     );
@@ -367,27 +386,31 @@ export default function HomePage({ onPageChange }: HomePageProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-islamic-cream/20 to-background">
-      {/* إشعار الأذان */}
+      {/* إشعار الأذان المحسن */}
       {showAdhanNotification && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 max-w-sm w-full mx-4">
-          <div className="bg-islamic-green text-white rounded-2xl p-4 shadow-2xl border border-white/20 animate-pulse">
-            <div className="text-center space-y-2">
-              <Volume2 className="h-8 w-8 mx-auto mb-2" />
-              <h3 className="text-lg font-bold font-arabic">حان موعد الأذان</h3>
-              <p className="text-sm">
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 max-w-sm w-full mx-4 animate-scale-in">
+          <div className="bg-gradient-primary text-white rounded-2xl p-6 shadow-islamic border border-white/20 animate-glow-pulse">
+            <div className="text-center space-y-3">
+              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Volume2 className="h-6 w-6 text-white" />
+              </div>
+              <h3 className="text-lg font-bold font-arabic-display">حان موعد الأذان</h3>
+              <p className="text-sm text-white/90 font-arabic">
                 {currentAdhanPrayer === 'fajr' && 'صلاة الفجر'}
                 {currentAdhanPrayer === 'dhuhr' && 'صلاة الظهر'}
                 {currentAdhanPrayer === 'asr' && 'صلاة العصر'}
                 {currentAdhanPrayer === 'maghrib' && 'صلاة المغرب'}
                 {currentAdhanPrayer === 'isha' && 'صلاة العشاء'}
               </p>
-              <Button 
-                onClick={dismissAdhanNotification}
-                className="bg-white/20 hover:bg-white/30 text-white text-xs px-3 py-1 mt-2"
-                size="sm"
-              >
-                إغلاق
-              </Button>
+              <div className="flex justify-center pt-2">
+                <Button 
+                  onClick={dismissAdhanNotification}
+                  className="bg-white/20 hover:bg-white/30 text-white text-sm px-4 py-2 rounded-xl border border-white/30"
+                  size="sm"
+                >
+                  <span className="font-arabic">إغلاق</span>
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -455,27 +478,33 @@ export default function HomePage({ onPageChange }: HomePageProps) {
           </div>
         </div>
 
-        {/* معلومات الموقع والطقس */}
+        {/* معلومات الموقع والطقس المحسنة */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-white rounded-2xl p-4 border border-border/50 shadow-sm">
-            <div className="flex items-center gap-2 mb-2">
-              <MapPin className="h-4 w-4 text-islamic-green" />
-              <h3 className="text-sm font-bold text-islamic-green">{t.location}</h3>
+          <div className="bg-white rounded-2xl p-4 border border-border/50 shadow-islamic-soft hover-lift">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 bg-islamic-green/10 rounded-full flex items-center justify-center">
+                <MapPin className="h-4 w-4 text-islamic-green" />
+              </div>
+              <h3 className="text-sm font-bold text-islamic-green font-arabic">الموقع</h3>
             </div>
-            <p className="text-xs text-muted-foreground">{location}</p>
+            <p className="text-xs text-muted-foreground font-arabic leading-relaxed">{location}</p>
           </div>
           
-          <div className="bg-white rounded-2xl p-4 border border-border/50 shadow-sm">
-            <div className="flex items-center gap-2 mb-2">
-              <Cloud className="h-4 w-4 text-islamic-blue" />
-              <h3 className="text-sm font-bold text-islamic-blue">{t.weather}</h3>
+          <div className="bg-white rounded-2xl p-4 border border-border/50 shadow-islamic-soft hover-lift">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 bg-islamic-blue/10 rounded-full flex items-center justify-center">
+                <Thermometer className="h-4 w-4 text-islamic-blue" />
+              </div>
+              <h3 className="text-sm font-bold text-islamic-blue font-arabic">الطقس</h3>
             </div>
-            <p className="text-xs text-muted-foreground">
-              {weather.temp > 0 ? `${weather.temp}°` : '--°'}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {language === 'english' ? weather.condition : weather.conditionAr}
-            </p>
+            <div className="space-y-1">
+              <p className="text-lg font-bold text-foreground">
+                {weather.temp > 0 ? `${weather.temp}°` : '--°'}
+              </p>
+              <p className="text-xs text-muted-foreground font-arabic">
+                {language === 'english' ? weather.condition : weather.conditionAr}
+              </p>
+            </div>
           </div>
         </div>
 
@@ -523,23 +552,23 @@ export default function HomePage({ onPageChange }: HomePageProps) {
           ))}
         </div>
 
-        {/* أزرار التحديث */}
+        {/* أزرار التحديث المحسنة */}
         <div className="flex justify-center gap-3">
           <Button 
             onClick={refreshContent}
-            className="bg-islamic-green hover:bg-islamic-green/90 text-white rounded-xl px-4 py-2 flex items-center gap-2"
+            className="bg-gradient-secondary hover:opacity-90 text-white rounded-xl px-4 py-3 flex items-center gap-2 transition-all duration-300 hover:scale-105 shadow-islamic-soft"
           >
             <RefreshCw className="h-4 w-4" />
-            <span className="font-arabic">تحديث المحتوى</span>
+            <span className="font-arabic text-sm">تحديث المحتوى</span>
           </Button>
           
           <Button 
             onClick={refreshAllData}
-            className="bg-islamic-blue hover:bg-islamic-blue/90 text-white rounded-xl px-4 py-2 flex items-center gap-2"
+            className="bg-gradient-primary hover:opacity-90 text-white rounded-xl px-4 py-3 flex items-center gap-2 transition-all duration-300 hover:scale-105 shadow-islamic-soft"
             disabled={loading}
           >
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            <span className="font-arabic">تحديث البيانات</span>
+            <span className="font-arabic text-sm">تحديث البيانات</span>
           </Button>
         </div>
 
