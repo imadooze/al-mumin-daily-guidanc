@@ -2,13 +2,14 @@ import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Clock, MapPin, BookOpen, Heart, Star, ArrowRight, Compass, ChevronRight, Sun, Moon, Sunrise, Cloud, Thermometer, RefreshCw, Settings, Volume2, VolumeX } from 'lucide-react';
+import { Clock, MapPin, BookOpen, Heart, Star, ArrowRight, Compass, ChevronRight, Sun, Moon, Sunrise, Cloud, Thermometer, RefreshCw, Settings, Volume2, VolumeX, Wifi, WifiOff } from 'lucide-react';
 import { useTranslations } from '@/lib/translations';
-import { getPrayerTimes, getCurrentLocation, PrayerData, LocationInfo } from '@/lib/prayer-api';
 import { getWeatherByCoordinates, getDemoWeatherData, WeatherData } from '@/lib/weather-api';
 import { AdhanService } from '@/lib/adhan-service';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { usePrayerMonitor } from '@/hooks/use-prayer-monitor';
+import OfflineManager from '@/lib/offline-manager';
+import CompassService from '@/lib/compass-service';
 
 interface HomePageProps {
   onPageChange?: (page: string) => void;
@@ -29,12 +30,15 @@ export default function HomePage({ onPageChange }: HomePageProps) {
   const [hijriDate, setHijriDate] = useLocalStorage<string>('hijri-date', '');
   const [ayahIndex, setAyahIndex] = useLocalStorage<number>('current-ayah', 0);
   const [hadithIndex, setHadithIndex] = useLocalStorage<number>('current-hadith', 0);
-  const [prayerData, setPrayerData] = useState<PrayerData | null>(null);
-  const [locationInfo, setLocationInfo] = useState<LocationInfo | null>(null);
+  const [prayerData, setPrayerData] = useState<any>(null);
+  const [locationInfo, setLocationInfo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [adhanEnabled, setAdhanEnabled] = useLocalStorage<boolean>('adhan-enabled', true);
   const [showAdhanNotification, setShowAdhanNotification] = useState(false);
   const [currentAdhanPrayer, setCurrentAdhanPrayer] = useState('');
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [lastSyncTime, setLastSyncTime] = useState<number>(0);
+  const [offlineManager] = useState(() => OfflineManager.getInstance());
   
   const t = useTranslations();
   const language = localStorage.getItem('app-language') || 'arabic';
@@ -42,30 +46,27 @@ export default function HomePage({ onPageChange }: HomePageProps) {
   // استخدام hook مراقبة الصلاة
   const nextPrayerInfo = usePrayerMonitor(prayerData);
 
-  // جلب الموقع وأوقات الصلاة
-  const loadLocationAndPrayers = async () => {
+  // جلب البيانات باستخدام مدير أوفلاين
+  const loadAllData = async () => {
     try {
-      // عدم إظهار loading إذا كانت البيانات موجودة مسبقاً
       if (!prayerData) {
         setLoading(true);
       }
       
-      const locationData = await getCurrentLocation();
-      setLocationInfo(locationData);
-      setLocation(`${locationData.city}, ${locationData.country}`);
+      const data = await offlineManager.getAllData();
       
-      // جلب أوقات الصلاة
-      const prayers = await getPrayerTimes(locationData.latitude, locationData.longitude);
-      if (prayers) {
-        setPrayerData(prayers);
-        // تحديث التاريخ الهجري من API
-        setHijriDate(`${prayers.date.hijri.date} ${prayers.date.hijri.month.ar} ${prayers.date.hijri.year} هـ`);
-      }
-
-      // جلب بيانات الطقس فقط إذا لم تكن موجودة
-      if (weather.temp === 0) {
+      // تحديث حالة التطبيق
+      setLocationInfo(data.location);
+      setLocation(`${data.location.city}, ${data.location.country}`);
+      setPrayerData(data.prayerTimes);
+      setHijriDate(data.prayerTimes.hijriDate || '');
+      setIsOnline(!data.isOffline);
+      setLastSyncTime(data.lastUpdate);
+      
+      // جلب بيانات الطقس فقط عند الاتصال بالإنترنت
+      if (!data.isOffline && weather.temp === 0) {
         try {
-          const weatherData = await getWeatherByCoordinates(locationData.latitude, locationData.longitude);
+          const weatherData = await getWeatherByCoordinates(data.location.latitude, data.location.longitude);
           if (weatherData) {
             setWeather(weatherData);
           } else {
@@ -80,17 +81,21 @@ export default function HomePage({ onPageChange }: HomePageProps) {
     } catch (error) {
       console.error('خطأ في جلب البيانات:', error);
       setLocation('غير متاح');
+      setIsOnline(false);
+      
       if (weather.temp === 0) {
         setWeather(getDemoWeatherData());
       }
-      // استخدام التاريخ الهجري التقريبي كـ fallback
+      
+      // استخدام التاريخ الهجري التقريبي
       if (!hijriDate) {
         const gregorianDate = new Date();
         const hijriYear = gregorianDate.getFullYear() - 579;
-        const hijriMonth = [
+        const hijriMonths = [
           'محرم', 'صفر', 'ربيع الأول', 'ربيع الثاني', 'جمادى الأولى', 'جمادى الثانية',
           'رجب', 'شعبان', 'رمضان', 'شوال', 'ذو القعدة', 'ذو الحجة'
-        ][gregorianDate.getMonth()];
+        ];
+        const hijriMonth = hijriMonths[gregorianDate.getMonth()];
         setHijriDate(`${gregorianDate.getDate()} ${hijriMonth} ${hijriYear} هـ`);
       }
     } finally {
@@ -99,25 +104,34 @@ export default function HomePage({ onPageChange }: HomePageProps) {
   };
 
   useEffect(() => {
-    // تحديد الموقع تلقائياً عند تحميل التطبيق
-    loadLocationAndPrayers();
+    // تحميل البيانات عند بدء التطبيق
+    loadAllData();
     
-    // تحديث البيانات كل دقيقة للحصول على معلومات دقيقة
+    // مراقبة حالة الاتصال
+    const handleOnline = () => {
+      setIsOnline(true);
+      offlineManager.syncData();
+    };
+    
+    const handleOffline = () => {
+      setIsOnline(false);
+    };
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    // تحديث دوري كل دقيقة
     const interval = setInterval(() => {
-      // تحديث أوقات الصلاة فقط (بدون تحديث الطقس لتوفير البيانات)
-      if (locationInfo) {
-        getPrayerTimes(locationInfo.latitude, locationInfo.longitude)
-          .then((prayers) => {
-            if (prayers) {
-              setPrayerData(prayers);
-            }
-          })
-          .catch(console.error);
-      }
-    }, 60000); // كل دقيقة
+      // تحديث الوقت الحالي فقط، البيانات تتحدث تلقائياً
+      setCurrentTime(new Date());
+    }, 60000);
     
-    return () => clearInterval(interval);
-  }, [locationInfo]);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      clearInterval(interval);
+    };
+  }, []);
 
   // تهيئة نظام الأذان
   useEffect(() => {
@@ -346,7 +360,15 @@ export default function HomePage({ onPageChange }: HomePageProps) {
 
   const refreshAllData = async () => {
     setLoading(true);
-    await loadLocationAndPrayers();
+    await offlineManager.forceUpdate().then(data => {
+      setLocationInfo(data.location);
+      setLocation(`${data.location.city}, ${data.location.country}`);
+      setPrayerData(data.prayerTimes);
+      setHijriDate(data.prayerTimes.hijriDate || '');
+      setIsOnline(!data.isOffline);
+      setLastSyncTime(data.lastUpdate);
+      setLoading(false);
+    });
   };
 
   const handleSettingsClick = () => {
