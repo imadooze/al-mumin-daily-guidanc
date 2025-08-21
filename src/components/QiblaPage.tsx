@@ -1,121 +1,93 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Compass, Navigation, MapPin, RefreshCw, AlertCircle } from 'lucide-react';
+import { Compass, Navigation, MapPin, RefreshCw, AlertCircle, Settings, Target } from 'lucide-react';
+import { useQiblaCompass } from '@/hooks/use-qibla-compass';
+import { useToast } from '@/hooks/use-toast';
 
 interface QiblaPageProps {
   onPageChange?: (page: string) => void;
 }
 
 export default function QiblaPage({ onPageChange }: QiblaPageProps) {
-  const [location, setLocation] = useState<{lat: number, lng: number} | null>(null);
-  const [qiblaDirection, setQiblaDirection] = useState<number | null>(null);
-  const [compass, setCompass] = useState<number>(0);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [accuracy, setAccuracy] = useState<number | null>(null);
+  const { toast } = useToast();
+  const [showCalibration, setShowCalibration] = useState(false);
+  
+  const {
+    qiblaData,
+    getCurrentLocation,
+    calibrateCompass,
+    resetCompass,
+    isSupported
+  } = useQiblaCompass({
+    updateInterval: 100,
+    enableAutoLocation: true,
+    enableOfflineMode: true
+  });
 
-  // إحداثيات الكعبة المشرفة
-  const KAABA_LAT = 21.4225;
-  const KAABA_LNG = 39.8262;
+  // معالجة معايرة البوصلة
+  const handleCalibration = async () => {
+    setShowCalibration(true);
+    toast({
+      title: "معايرة البوصلة",
+      description: "حرك الهاتف في شكل 8 عدة مرات للحصول على أفضل دقة",
+      duration: 3000,
+    });
 
-  // حساب اتجاه القبلة
-  const calculateQibla = (lat: number, lng: number) => {
-    const dLng = (KAABA_LNG - lng) * Math.PI / 180;
-    const lat1 = lat * Math.PI / 180;
-    const lat2 = KAABA_LAT * Math.PI / 180;
-
-    const y = Math.sin(dLng);
-    const x = Math.cos(lat1) * Math.tan(lat2) - Math.sin(lat1) * Math.cos(dLng);
-
-    let bearing = Math.atan2(y, x) * 180 / Math.PI;
-    bearing = (bearing + 360) % 360;
-
-    return bearing;
-  };
-
-  // حساب المسافة إلى مكة
-  const calculateDistance = (lat: number, lng: number) => {
-    const R = 6371; // نصف قطر الأرض بالكيلومتر
-    const dLat = (KAABA_LAT - lat) * Math.PI / 180;
-    const dLng = (KAABA_LNG - lng) * Math.PI / 180;
+    const success = await calibrateCompass();
+    setShowCalibration(false);
     
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(lat * Math.PI / 180) * Math.cos(KAABA_LAT * Math.PI / 180) *
-              Math.sin(dLng/2) * Math.sin(dLng/2);
-    
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
-  };
-
-  // الحصول على الموقع الحالي
-  const getCurrentLocation = () => {
-    setLoading(true);
-    setError(null);
-
-    if (!navigator.geolocation) {
-      setError('متصفحك لا يدعم تحديد الموقع');
-      setLoading(false);
-      return;
+    if (success) {
+      toast({
+        title: "تمت المعايرة بنجاح ✅",
+        description: "البوصلة جاهزة للاستخدام بدقة عالية",
+        duration: 2000,
+      });
+    } else {
+      toast({
+        title: "فشلت المعايرة ❌",
+        description: "تأكد من إبعاد الهاتف عن المعادن والمغناطيس",
+        variant: "destructive",
+        duration: 3000,
+      });
     }
+  };
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
-        const acc = position.coords.accuracy;
+  // تحديث الموقع
+  const handleLocationUpdate = async () => {
+    try {
+      await getCurrentLocation(true);
+      toast({
+        title: "تم تحديث الموقع ✅",
+        description: "تم إعادة حساب اتجاه القبلة بدقة أعلى",
+        duration: 2000,
+      });
+    } catch (error) {
+      toast({
+        title: "فشل في تحديث الموقع ❌",
+        description: "تأكد من تفعيل خدمات الموقع",
+        variant: "destructive",
+        duration: 3000,
+      });
+    }
+  };
 
-        setLocation({ lat, lng });
-        setAccuracy(acc);
-        setQiblaDirection(calculateQibla(lat, lng));
-        setLoading(false);
-      },
-      (error) => {
-        setError('فشل في تحديد الموقع. تأكد من السماح للتطبيق بالوصول للموقع.');
-        setLoading(false);
-        console.error('Geolocation error:', error);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 300000 // 5 دقائق
-      }
+  if (!isSupported) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Card className="islamic-card max-w-md">
+          <CardContent className="text-center p-6">
+            <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">الجهاز غير مدعوم</h3>
+            <p className="text-muted-foreground text-sm">
+              هذا الجهاز لا يدعم حساس البوصلة أو تحديد الموقع المطلوب لميزة القبلة
+            </p>
+          </CardContent>
+        </Card>
+      </div>
     );
-  };
-
-  // مراقبة البوصلة
-  useEffect(() => {
-    let watchId: number;
-
-    if (window.DeviceOrientationEvent) {
-      const handleOrientation = (event: DeviceOrientationEvent) => {
-        if (event.alpha !== null) {
-          setCompass(360 - event.alpha);
-        }
-      };
-
-      window.addEventListener('deviceorientation', handleOrientation);
-      
-      return () => {
-        window.removeEventListener('deviceorientation', handleOrientation);
-      };
-    }
-
-    return () => {
-      if (watchId) {
-        navigator.geolocation.clearWatch(watchId);
-      }
-    };
-  }, []);
-
-  // تحديد الموقع عند تحميل الصفحة
-  useEffect(() => {
-    getCurrentLocation();
-  }, []);
-
-  const distance = location ? calculateDistance(location.lat, location.lng) : null;
-  const adjustedQibla = qiblaDirection !== null ? (qiblaDirection - compass + 360) % 360 : null;
+  }
 
   return (
     <div className="space-y-6">
@@ -131,49 +103,73 @@ export default function QiblaPage({ onPageChange }: QiblaPageProps) {
         </div>
       </div>
 
-      {/* معلومات الموقع */}
+      {/* معلومات الموقع والحالة */}
       <Card className="islamic-card">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="h-5 w-5" />
-            معلومات الموقع
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <MapPin className="h-5 w-5" />
+              معلومات الموقع
+            </div>
+            <div className="flex gap-2">
+              <Badge variant={qiblaData.isCalibrated ? "default" : "secondary"}>
+                {qiblaData.isCalibrated ? "معايرة ✓" : "غير معايرة"}
+              </Badge>
+              <Badge variant={qiblaData.accuracy > 70 ? "default" : qiblaData.accuracy > 40 ? "secondary" : "destructive"}>
+                دقة {qiblaData.accuracy.toFixed(0)}%
+              </Badge>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center">
               <div className="text-lg font-bold text-islamic-green">
-                {location ? location.lat.toFixed(4) + '°' : '---'}
+                {qiblaData.location ? qiblaData.location.lat.toFixed(4) + '°' : '---'}
               </div>
               <p className="text-sm text-muted-foreground">خط العرض</p>
             </div>
             <div className="text-center">
               <div className="text-lg font-bold text-islamic-blue">
-                {location ? location.lng.toFixed(4) + '°' : '---'}
+                {qiblaData.location ? qiblaData.location.lng.toFixed(4) + '°' : '---'}
               </div>
               <p className="text-sm text-muted-foreground">خط الطول</p>
             </div>
             <div className="text-center">
               <div className="text-lg font-bold text-islamic-gold">
-                {distance ? distance.toFixed(0) + ' كم' : '---'}
+                {qiblaData.distance > 0 ? qiblaData.distance + ' كم' : '---'}
               </div>
               <p className="text-sm text-muted-foreground">المسافة إلى مكة</p>
             </div>
             <div className="text-center">
               <div className="text-lg font-bold text-primary">
-                {qiblaDirection ? qiblaDirection.toFixed(0) + '°' : '---'}
+                {qiblaData.qiblaDirection ? qiblaData.qiblaDirection.toFixed(1) + '°' : '---'}
               </div>
               <p className="text-sm text-muted-foreground">اتجاه القبلة</p>
             </div>
           </div>
           
-          {accuracy && (
-            <div className="mt-4 text-center">
-              <Badge variant={accuracy < 50 ? "default" : accuracy < 100 ? "secondary" : "destructive"}>
-                دقة الموقع: {accuracy.toFixed(0)} متر
-              </Badge>
-            </div>
-          )}
+          {/* أزرار التحكم */}
+          <div className="mt-4 flex gap-2 justify-center">
+            <Button
+              onClick={handleLocationUpdate}
+              disabled={qiblaData.isLoading}
+              variant="outline"
+              size="sm"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${qiblaData.isLoading ? 'animate-spin' : ''}`} />
+              تحديث الموقع
+            </Button>
+            <Button
+              onClick={handleCalibration}
+              disabled={showCalibration}
+              variant="outline"
+              size="sm"
+            >
+              <Settings className={`h-4 w-4 mr-2 ${showCalibration ? 'animate-spin' : ''}`} />
+              معايرة البوصلة
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -183,105 +179,158 @@ export default function QiblaPage({ onPageChange }: QiblaPageProps) {
           <CardTitle className="text-center">البوصلة الإلكترونية</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col items-center space-y-6">
-          {error && (
-            <div className="flex items-center gap-2 text-red-500 bg-red-50 p-3 rounded-lg">
+          {qiblaData.error && (
+            <div className="flex items-center gap-2 text-red-500 bg-red-50 p-3 rounded-lg w-full">
               <AlertCircle className="h-5 w-5" />
-              <span className="text-sm">{error}</span>
+              <span className="text-sm">{qiblaData.error}</span>
             </div>
           )}
 
-          {loading ? (
+          {qiblaData.isLoading ? (
             <div className="flex items-center gap-2 text-muted-foreground">
               <RefreshCw className="h-5 w-5 animate-spin" />
               <span>جاري تحديد الموقع...</span>
             </div>
-          ) : (
+          ) : qiblaData.location ? (
             <>
-              {/* البوصلة الرئيسية */}
+              {/* البوصلة الرئيسية المحسنة */}
               <div className="relative">
-                <div className="w-72 h-72 rounded-full border-8 border-muted bg-gradient-card relative shadow-islamic">
-                  {/* خلفية البوصلة */}
+                <div className="w-80 h-80 rounded-full border-8 border-muted bg-gradient-card relative shadow-islamic">
+                  {/* خلفية البوصلة مع علامات متدرجة */}
                   <div 
-                    className="absolute inset-2 rounded-full bg-gradient-hero transition-transform duration-500"
-                    style={{ transform: `rotate(${compass}deg)` }}
+                    className="absolute inset-2 rounded-full bg-gradient-hero transition-transform duration-300 ease-out"
+                    style={{ transform: `rotate(${-qiblaData.userHeading}deg)` }}
                   >
-                    {/* علامات الاتجاهات */}
-                    <div className="absolute top-2 left-1/2 transform -translate-x-1/2">
-                      <div className="w-1 h-8 bg-white"></div>
-                      <div className="text-white text-xs font-bold text-center mt-1">N</div>
-                    </div>
-                    <div className="absolute right-2 top-1/2 transform -translate-y-1/2 rotate-90">
-                      <div className="w-1 h-6 bg-white/70"></div>
-                      <div className="text-white text-xs font-bold text-center mt-1 -rotate-90">E</div>
-                    </div>
-                    <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 rotate-180">
-                      <div className="w-1 h-6 bg-white/70"></div>
-                      <div className="text-white text-xs font-bold text-center mt-1 -rotate-180">S</div>
-                    </div>
-                    <div className="absolute left-2 top-1/2 transform -translate-y-1/2 -rotate-90">
-                      <div className="w-1 h-6 bg-white/70"></div>
-                      <div className="text-white text-xs font-bold text-center mt-1 rotate-90">W</div>
-                    </div>
+                    {/* علامات الاتجاهات الرئيسية */}
+                    {['N', 'E', 'S', 'W'].map((direction, index) => (
+                      <div 
+                        key={direction}
+                        className="absolute"
+                        style={{
+                          top: index === 0 ? '4px' : index === 2 ? 'auto' : '50%',
+                          bottom: index === 2 ? '4px' : 'auto',
+                          left: index === 3 ? '4px' : index === 1 ? 'auto' : '50%',
+                          right: index === 1 ? '4px' : 'auto',
+                          transform: `translate(${index % 2 === 0 ? '-50%' : index === 1 ? '0' : '0'}, ${index % 2 === 1 ? '-50%' : index === 2 ? '0' : '0'})`
+                        }}
+                      >
+                        <div className={`w-1 ${index === 0 ? 'h-10' : 'h-8'} bg-white/90 mx-auto`}></div>
+                        <div className="text-white text-sm font-bold text-center mt-1">{direction}</div>
+                      </div>
+                    ))}
+
+                    {/* علامات متدرجة كل 30 درجة */}
+                    {Array.from({ length: 12 }).map((_, i) => {
+                      const angle = i * 30;
+                      if (angle % 90 === 0) return null; // تجاهل الاتجاهات الرئيسية
+                      return (
+                        <div
+                          key={i}
+                          className="absolute w-0.5 h-6 bg-white/60"
+                          style={{
+                            top: '8px',
+                            left: '50%',
+                            transformOrigin: '50% 144px',
+                            transform: `translateX(-50%) rotate(${angle}deg)`
+                          }}
+                        />
+                      );
+                    })}
                   </div>
 
-                  {/* مؤشر القبلة */}
-                  {adjustedQibla !== null && (
-                    <div 
-                      className="absolute inset-0 transition-transform duration-500"
-                      style={{ transform: `rotate(${adjustedQibla}deg)` }}
-                    >
-                      <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1">
-                        <div className="w-0 h-0 border-l-4 border-r-4 border-b-8 border-l-transparent border-r-transparent border-b-islamic-gold animate-pulse-islamic"></div>
-                        <div className="text-xs font-bold text-islamic-gold text-center mt-1">قبلة</div>
+                  {/* مؤشر القبلة المحسن */}
+                  <div 
+                    className="absolute inset-0 transition-transform duration-300 ease-out"
+                    style={{ transform: `rotate(${qiblaData.qiblaRelativeDirection}deg)` }}
+                  >
+                    <div className="absolute top-2 left-1/2 transform -translate-x-1/2 flex flex-col items-center">
+                      {/* سهم القبلة الذهبي */}
+                      <div className="relative">
+                        <Target className="h-8 w-8 text-islamic-gold animate-pulse-islamic drop-shadow-lg" />
+                        <div className="absolute -top-1 -left-1 w-10 h-10 border-2 border-islamic-gold rounded-full animate-ping opacity-30"></div>
+                      </div>
+                      <div className="text-xs font-bold text-islamic-gold text-center mt-1 bg-black/30 px-2 py-1 rounded">
+                        الكعبة المشرفة
                       </div>
                     </div>
-                  )}
-
-                  {/* المركز */}
-                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                    <div className="w-4 h-4 bg-white rounded-full shadow-lg"></div>
                   </div>
 
-                  {/* قراءات البوصلة */}
-                  <div className="absolute -bottom-12 left-1/2 transform -translate-x-1/2 text-center">
-                    <div className="text-2xl font-bold text-primary">
-                      {Math.round(compass)}°
+                  {/* المركز المحسن */}
+                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                    <div className="w-6 h-6 bg-white rounded-full shadow-lg border-2 border-islamic-gold"></div>
+                    <div className="absolute inset-0 w-6 h-6 bg-islamic-gold rounded-full animate-ping opacity-30"></div>
+                  </div>
+
+                  {/* مؤشر دقة البوصلة */}
+                  <div className="absolute top-4 right-4">
+                    <div className={`w-3 h-3 rounded-full ${
+                      qiblaData.accuracy > 80 ? 'bg-green-500' :
+                      qiblaData.accuracy > 60 ? 'bg-yellow-500' :
+                      qiblaData.accuracy > 40 ? 'bg-orange-500' : 'bg-red-500'
+                    } animate-pulse`}></div>
+                  </div>
+
+                  {/* قراءات البوصلة المحسنة */}
+                  <div className="absolute -bottom-16 left-1/2 transform -translate-x-1/2 text-center">
+                    <div className="text-3xl font-bold text-primary">
+                      {Math.round(qiblaData.userHeading)}°
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      اتجاه البوصلة
+                      اتجاه الهاتف
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* معلومات إضافية */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-md">
-                <div className="text-center p-3 bg-muted/50 rounded-lg">
+              {/* معلومات دقيقة مفصلة */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-2xl">
+                <div className="text-center p-4 bg-muted/50 rounded-lg border-2 border-islamic-green/20">
                   <Compass className="h-6 w-6 mx-auto mb-2 text-islamic-green" />
-                  <div className="text-lg font-bold">
-                    {adjustedQibla !== null ? Math.round(adjustedQibla) + '°' : '---'}
+                  <div className="text-xl font-bold text-islamic-green">
+                    {Math.round(qiblaData.qiblaRelativeDirection)}°
                   </div>
                   <div className="text-sm text-muted-foreground">الاتجاه النسبي للقبلة</div>
+                  <div className="text-xs mt-1 font-medium">
+                    {qiblaData.qiblaRelativeDirection < 5 || qiblaData.qiblaRelativeDirection > 355 ? 
+                      '🎯 اتجاه صحيح' : 
+                      `انحرف ${Math.min(qiblaData.qiblaRelativeDirection, 360 - qiblaData.qiblaRelativeDirection).toFixed(0)}° ${qiblaData.qiblaRelativeDirection > 180 ? 'يساراً' : 'يميناً'}`}
+                  </div>
                 </div>
-                <div className="text-center p-3 bg-muted/50 rounded-lg">
+                <div className="text-center p-4 bg-muted/50 rounded-lg border-2 border-islamic-blue/20">
                   <Navigation className="h-6 w-6 mx-auto mb-2 text-islamic-blue" />
-                  <div className="text-lg font-bold">
-                    {qiblaDirection !== null ? Math.round(qiblaDirection) + '°' : '---'}
+                  <div className="text-xl font-bold text-islamic-blue">
+                    {qiblaData.qiblaDirection.toFixed(1)}°
                   </div>
                   <div className="text-sm text-muted-foreground">الاتجاه المطلق للقبلة</div>
+                  <div className="text-xs mt-1 font-medium">
+                    من موقعك الحالي
+                  </div>
+                </div>
+                <div className="text-center p-4 bg-muted/50 rounded-lg border-2 border-islamic-gold/20">
+                  <Settings className="h-6 w-6 mx-auto mb-2 text-islamic-gold" />
+                  <div className="text-xl font-bold text-islamic-gold">
+                    {qiblaData.accuracy.toFixed(0)}%
+                  </div>
+                  <div className="text-sm text-muted-foreground">دقة البوصلة</div>
+                  <div className="text-xs mt-1 font-medium">
+                    {qiblaData.isCalibrated ? '✅ معايرة' : '⚠️ يحتاج معايرة'}
+                  </div>
                 </div>
               </div>
             </>
+          ) : (
+            <div className="text-center p-8">
+              <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground">لم يتم تحديد الموقع بعد</p>
+              <Button
+                onClick={handleLocationUpdate}
+                className="mt-4"
+              >
+                <MapPin className="h-4 w-4 mr-2" />
+                تحديد الموقع
+              </Button>
+            </div>
           )}
-
-          <Button
-            onClick={getCurrentLocation}
-            disabled={loading}
-            className="flex items-center gap-2"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            {loading ? 'جاري تحديد الموقع...' : 'تحديث الموقع'}
-          </Button>
         </CardContent>
       </Card>
 
