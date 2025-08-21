@@ -42,23 +42,28 @@ class CompassService {
     return 'DeviceOrientationEvent' in window;
   }
 
-  // بدء مراقبة البوصلة
+  // بدء مراقبة البوصلة مع معالجة أفضل للأخطاء
   public startWatching(): Promise<boolean> {
     return new Promise((resolve, reject) => {
       if (this.isWatching) {
+        console.log('البوصلة تعمل بالفعل');
         resolve(true);
         return;
       }
 
       if (!this.checkCompassSupport()) {
+        console.error('البوصلة غير مدعومة في هذا الجهاز');
         reject(new Error('البوصلة غير مدعومة في هذا الجهاز'));
         return;
       }
 
+      console.log('طلب إذن الوصول للبوصلة...');
+      
       // طلب إذن الوصول للحساسات في iOS
       if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
         (DeviceOrientationEvent as any).requestPermission()
           .then((permission: string) => {
+            console.log('نتيجة طلب الإذن:', permission);
             if (permission === 'granted') {
               this.setupCompassListener();
               resolve(true);
@@ -67,20 +72,26 @@ class CompassService {
             }
           })
           .catch((error: any) => {
+            console.error('خطأ في طلب إذن البوصلة:', error);
             reject(new Error('خطأ في طلب إذن البوصلة: ' + error.message));
           });
       } else {
-        // للأجهزة الأخرى
+        // للأجهزة الأخرى (Android, etc)
+        console.log('تشغيل البوصلة مباشرة (بدون طلب إذن)');
         this.setupCompassListener();
         resolve(true);
       }
     });
   }
 
-  // إعداد مستمع البوصلة مع تحسينات الدقة
+  // إعداد مستمع البوصلة مع تحسينات الدقة وإضافة console.log
   private setupCompassListener(): void {
+    console.log('إعداد مستمع البوصلة...');
+    
     this.handleOrientationChange = (event: DeviceOrientationEvent) => {
       if (event.alpha !== null && event.beta !== null && event.gamma !== null) {
+        console.log('قراءة البوصلة:', { alpha: event.alpha, beta: event.beta, gamma: event.gamma });
+        
         // حساب الاتجاه المغناطيسي مع تعويض انحراف الجهاز
         let heading = this.calculateMagneticHeading(event.alpha, event.beta, event.gamma);
         
@@ -93,6 +104,8 @@ class CompassService {
         this.accuracy = this.calculateAccuracy(event);
         this.isCalibrated = this.checkCalibration(event);
 
+        console.log('النتيجة النهائية:', { heading, accuracy: this.accuracy, isCalibrated: this.isCalibrated });
+
         // إشعار جميع المستمعين
         const compassData: CompassData = {
           heading: this.currentHeading,
@@ -101,11 +114,14 @@ class CompassService {
         };
 
         this.callbacks.forEach(callback => callback(compassData));
+      } else {
+        console.warn('قراءة بوصلة غير مكتملة:', { alpha: event.alpha, beta: event.beta, gamma: event.gamma });
       }
     };
 
     window.addEventListener('deviceorientation', this.handleOrientationChange, true);
     this.isWatching = true;
+    console.log('تم تشغيل مستمع البوصلة');
   }
 
   // تحسين حساب الاتجاه المغناطيسي

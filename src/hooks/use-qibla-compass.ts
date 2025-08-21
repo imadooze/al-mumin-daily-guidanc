@@ -69,7 +69,7 @@ export function useQiblaCompass(options: UseQiblaCompassOptions = {}) {
     }));
   }, [compassService]);
 
-  // الحصول على الموقع الحالي
+  // الحصول على الموقع الحالي مع معالجة محسنة للأخطاء
   const getCurrentLocation = useCallback(async (forceUpdate = false): Promise<{ lat: number; lng: number } | null> => {
     if (!isComponentMounted.current) return null;
 
@@ -82,6 +82,7 @@ export function useQiblaCompass(options: UseQiblaCompassOptions = {}) {
         if (storedLocation && offlineStorage.isDataValid(storedLocation.timestamp)) {
           const location = { lat: storedLocation.latitude, lng: storedLocation.longitude };
           setQiblaData(prev => ({ ...prev, location, isLoading: false }));
+          console.log('تم استخدام الموقع المحفوظ:', location);
           return location;
         }
       }
@@ -92,8 +93,18 @@ export function useQiblaCompass(options: UseQiblaCompassOptions = {}) {
       }
 
       return new Promise((resolve, reject) => {
+        // تحديد timeout أقصر لتجنب التعليق
+        const timeoutId = setTimeout(() => {
+          console.log('انتهت مهلة تحديد الموقع، سيتم استخدام موقع افتراضي');
+          // استخدام موقع افتراضي (مكة المكرمة كمثال)
+          const defaultLocation = { lat: 21.4225, lng: 39.8262 };
+          setQiblaData(prev => ({ ...prev, location: defaultLocation, isLoading: false }));
+          resolve(defaultLocation);
+        }, 8000); // 8 ثوان بدلاً من 15
+
         navigator.geolocation.getCurrentPosition(
           (position) => {
+            clearTimeout(timeoutId);
             if (!isComponentMounted.current) {
               resolve(null);
               return;
@@ -104,12 +115,14 @@ export function useQiblaCompass(options: UseQiblaCompassOptions = {}) {
               lng: position.coords.longitude
             };
 
+            console.log('تم الحصول على الموقع الحالي:', location);
+
             // حفظ الموقع للاستخدام أوفلاين
             if (enableOfflineMode) {
               offlineStorage.saveLocation({
                 latitude: location.lat,
                 longitude: location.lng,
-                city: '', // يمكن إضافة API لتحديد اسم المدينة
+                city: '',
                 country: '',
                 timestamp: Date.now()
               });
@@ -119,31 +132,42 @@ export function useQiblaCompass(options: UseQiblaCompassOptions = {}) {
             resolve(location);
           },
           (error) => {
+            clearTimeout(timeoutId);
             if (!isComponentMounted.current) {
               resolve(null);
               return;
             }
 
-            let errorMessage = 'فشل في تحديد الموقع';
-            switch (error.code) {
-              case error.PERMISSION_DENIED:
-                errorMessage = 'تم رفض إذن الوصول للموقع. يرجى السماح للتطبيق بالوصول للموقع';
-                break;
-              case error.POSITION_UNAVAILABLE:
-                errorMessage = 'الموقع غير متاح حالياً';
-                break;
-              case error.TIMEOUT:
-                errorMessage = 'انتهت مهلة تحديد الموقع';
-                break;
+            console.error('خطأ في تحديد الموقع:', error);
+
+            // محاولة استخدام موقع محفوظ كبديل
+            const storedLocation = offlineStorage.getStoredLocation();
+            if (storedLocation) {
+              const location = { lat: storedLocation.latitude, lng: storedLocation.longitude };
+              setQiblaData(prev => ({ 
+                ...prev, 
+                location, 
+                isLoading: false,
+                error: 'تم استخدام آخر موقع محفوظ' 
+              }));
+              resolve(location);
+              return;
             }
 
-            setQiblaData(prev => ({ ...prev, error: errorMessage, isLoading: false }));
-            reject(new Error(errorMessage));
+            // استخدام موقع افتراضي كملاذ أخير
+            const defaultLocation = { lat: 21.4225, lng: 39.8262 };
+            setQiblaData(prev => ({ 
+              ...prev, 
+              location: defaultLocation, 
+              isLoading: false,
+              error: 'تم استخدام موقع افتراضي. يرجى السماح بالوصول للموقع للحصول على دقة أفضل' 
+            }));
+            resolve(defaultLocation);
           },
           {
             enableHighAccuracy: true,
-            timeout: 15000,
-            maximumAge: 300000 // 5 دقائق
+            timeout: 7000, // تقليل timeout
+            maximumAge: 60000 // دقيقة واحدة
           }
         );
       });
@@ -156,12 +180,15 @@ export function useQiblaCompass(options: UseQiblaCompassOptions = {}) {
     }
   }, [enableOfflineMode, offlineStorage]);
 
-  // بدء مراقبة البوصلة
+  // بدء مراقبة البوصلة مع معالجة أفضل للأخطاء
   const startCompassWatching = useCallback(async () => {
     try {
+      console.log('بدء تشغيل البوصلة...');
       await compassService.startWatching();
+      console.log('تم تشغيل البوصلة بنجاح');
       
       const compassListener = (compassData: CompassData) => {
+        console.log('بيانات البوصلة:', compassData);
         if (qiblaData.location) {
           updateQiblaData(compassData, qiblaData.location);
         }
@@ -170,9 +197,11 @@ export function useQiblaCompass(options: UseQiblaCompassOptions = {}) {
       compassService.addCompassListener(compassListener);
 
       return () => {
+        console.log('إيقاف مراقبة البوصلة');
         compassService.removeCompassListener(compassListener);
       };
     } catch (error) {
+      console.error('خطأ في تشغيل البوصلة:', error);
       const errorMessage = error instanceof Error ? error.message : 'فشل في تشغيل البوصلة';
       setQiblaData(prev => ({ ...prev, error: errorMessage }));
       return () => {};
@@ -216,44 +245,46 @@ export function useQiblaCompass(options: UseQiblaCompassOptions = {}) {
     });
   }, [compassService]);
 
-  // تهيئة النظام
+  // تهيئة النظام مع تسلسل أفضل
   useEffect(() => {
     isComponentMounted.current = true;
     
     const initializeQiblaCompass = async () => {
-      // الحصول على الموقع أولاً
-      const location = await getCurrentLocation();
+      console.log('تهيئة نظام البوصلة...');
       
-      if (location) {
-        // بدء مراقبة البوصلة
-        const cleanup = await startCompassWatching();
-        
-        // تحديث دوري للبيانات
-        intervalRef.current = setInterval(() => {
-          if (isComponentMounted.current && qiblaData.location) {
-            const currentCompassData = {
-              heading: compassService.getCurrentHeading(),
-              accuracy: compassService.getAccuracy(),
-              isCalibrated: compassService.isCompassCalibrated()
-            };
-            updateQiblaData(currentCompassData, qiblaData.location);
-          }
-        }, updateInterval);
+      // بدء مراقبة البوصلة أولاً (لا تحتاج موقع)
+      const cleanupCompass = await startCompassWatching();
+      
+      // ثم الحصول على الموقع
+      const location = await getCurrentLocation();
+      console.log('الموقع المستخدم:', location);
+      
+      // تحديث دوري للبيانات
+      intervalRef.current = setInterval(() => {
+        if (isComponentMounted.current && qiblaData.location) {
+          const currentCompassData = {
+            heading: compassService.getCurrentHeading(),
+            accuracy: compassService.getAccuracy(),
+            isCalibrated: compassService.isCompassCalibrated()
+          };
+          updateQiblaData(currentCompassData, qiblaData.location);
+        }
+      }, updateInterval);
 
-        return cleanup;
-      }
+      return cleanupCompass;
     };
 
-    initializeQiblaCompass();
+    const cleanup = initializeQiblaCompass();
 
     return () => {
       isComponentMounted.current = false;
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
+      cleanup.then(cleanupFn => cleanupFn?.());
       compassService.stopWatching();
     };
-  }, []);
+  }, [getCurrentLocation, startCompassWatching, updateInterval]);
 
   // تنظيف الموارد عند إلغاء التحميل
   useEffect(() => {
