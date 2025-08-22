@@ -184,14 +184,39 @@ export function useQiblaCompass(options: UseQiblaCompassOptions = {}) {
   const startCompassWatching = useCallback(async () => {
     try {
       console.log('بدء تشغيل البوصلة...');
+      
+      if (!isComponentMounted.current) {
+        console.log('المكون غير مثبت، إيقاف تشغيل البوصلة');
+        return () => {};
+      }
+      
       await compassService.startWatching();
       console.log('تم تشغيل البوصلة بنجاح');
       
       const compassListener = (compassData: CompassData) => {
+        if (!isComponentMounted.current) return;
+        
         console.log('بيانات البوصلة:', compassData);
-        if (qiblaData.location) {
-          updateQiblaData(compassData, qiblaData.location);
-        }
+        
+        // الحصول على الموقع الحالي من state بدلاً من dependency
+        setQiblaData(prev => {
+          if (prev.location) {
+            const qiblaCompass = compassService.calculateQiblaCompass(prev.location.lat, prev.location.lng);
+            const distance = compassService.calculateDistanceToMecca(prev.location.lat, prev.location.lng);
+            
+            return {
+              ...prev,
+              userHeading: qiblaCompass.userHeading,
+              qiblaDirection: qiblaCompass.qiblaDirection,
+              qiblaRelativeDirection: qiblaCompass.qiblaRelativeDirection,
+              accuracy: qiblaCompass.accuracy,
+              isCalibrated: qiblaCompass.isCalibrated,
+              distance,
+              error: null
+            };
+          }
+          return prev;
+        });
       };
 
       compassService.addCompassListener(compassListener);
@@ -203,10 +228,10 @@ export function useQiblaCompass(options: UseQiblaCompassOptions = {}) {
     } catch (error) {
       console.error('خطأ في تشغيل البوصلة:', error);
       const errorMessage = error instanceof Error ? error.message : 'فشل في تشغيل البوصلة';
-      setQiblaData(prev => ({ ...prev, error: errorMessage }));
+      setQiblaData(prev => ({ ...prev, error: errorMessage, isLoading: false }));
       return () => {};
     }
-  }, [compassService, qiblaData.location, updateQiblaData]);
+  }, [compassService]);
 
   // معايرة البوصلة
   const calibrateCompass = useCallback(async (): Promise<boolean> => {
@@ -245,46 +270,63 @@ export function useQiblaCompass(options: UseQiblaCompassOptions = {}) {
     });
   }, [compassService]);
 
-  // تهيئة النظام مع تسلسل أفضل
+  // تهيئة النظام مع تسلسل أفضل  
   useEffect(() => {
     isComponentMounted.current = true;
+    let cleanupFn: (() => void) | null = null;
     
     const initializeQiblaCompass = async () => {
-      console.log('تهيئة نظام البوصلة...');
-      
-      // بدء مراقبة البوصلة أولاً (لا تحتاج موقع)
-      const cleanupCompass = await startCompassWatching();
-      
-      // ثم الحصول على الموقع
-      const location = await getCurrentLocation();
-      console.log('الموقع المستخدم:', location);
-      
-      // تحديث دوري للبيانات
-      intervalRef.current = setInterval(() => {
-        if (isComponentMounted.current && qiblaData.location) {
-          const currentCompassData = {
-            heading: compassService.getCurrentHeading(),
-            accuracy: compassService.getAccuracy(),
-            isCalibrated: compassService.isCompassCalibrated()
-          };
-          updateQiblaData(currentCompassData, qiblaData.location);
+      try {
+        console.log('تهيئة نظام البوصلة...');
+        
+        // الحصول على الموقع أولاً
+        const location = await getCurrentLocation();
+        console.log('الموقع المستخدم:', location);
+        
+        if (!location || !isComponentMounted.current) {
+          console.log('لم يتم الحصول على الموقع، التوقف...');
+          return;
         }
-      }, updateInterval);
-
-      return cleanupCompass;
+        
+        // بدء مراقبة البوصلة بعد التأكد من الموقع
+        cleanupFn = await startCompassWatching();
+        
+        // تحديث دوري للبيانات
+        intervalRef.current = setInterval(() => {
+          if (isComponentMounted.current && qiblaData.location) {
+            const currentCompassData = {
+              heading: compassService.getCurrentHeading(),
+              accuracy: compassService.getAccuracy(),
+              isCalibrated: compassService.isCompassCalibrated()
+            };
+            updateQiblaData(currentCompassData, qiblaData.location);
+          }
+        }, updateInterval);
+        
+      } catch (error) {
+        console.error('خطأ في تهيئة نظام البوصلة:', error);
+        setQiblaData(prev => ({ 
+          ...prev, 
+          error: 'فشل في تهيئة نظام البوصلة',
+          isLoading: false 
+        }));
+      }
     };
 
-    const cleanup = initializeQiblaCompass();
+    initializeQiblaCompass();
 
     return () => {
       isComponentMounted.current = false;
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
+        intervalRef.current = undefined;
       }
-      cleanup.then(cleanupFn => cleanupFn?.());
+      if (cleanupFn) {
+        cleanupFn();
+      }
       compassService.stopWatching();
     };
-  }, [getCurrentLocation, startCompassWatching, updateInterval]);
+  }, []); // إزالة التبعيات التي تسبب إعادة تشغيل مستمرة
 
   // تنظيف الموارد عند إلغاء التحميل
   useEffect(() => {
