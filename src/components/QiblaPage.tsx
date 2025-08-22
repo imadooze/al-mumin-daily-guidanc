@@ -108,22 +108,22 @@ export default function QiblaPage({ onPageChange }: QiblaPageProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-3 justify-center">
+          <div className="flex gap-2 justify-center">
             <Button
               onClick={handleToggleCompass}
               disabled={isLoading}
-              size="lg"
+              size="sm"
               variant={isCompassActive ? "destructive" : "default"}
             >
               {isCompassActive ? (
                 <>
-                  <Square className="h-4 w-4 mr-2" />
-                  إيقاف البوصلة
+                  <Square className="h-3 w-3 mr-1" />
+                  إيقاف
                 </>
               ) : (
                 <>
-                  <Play className="h-4 w-4 mr-2" />
-                  تشغيل البوصلة
+                  <Play className="h-3 w-3 mr-1" />
+                  تشغيل
                 </>
               )}
             </Button>
@@ -132,10 +132,10 @@ export default function QiblaPage({ onPageChange }: QiblaPageProps) {
               onClick={handleUpdateLocation}
               disabled={isLoading}
               variant="outline"
-              size="lg"
+              size="sm"
             >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-              تحديث الموقع
+              <RefreshCw className={`h-3 w-3 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
+              تحديث
             </Button>
           </div>
 
