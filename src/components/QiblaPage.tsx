@@ -167,10 +167,10 @@ export default function QiblaPage({ onPageChange }: QiblaPageProps) {
         </Card>
       )}
 
-      {/* البوصلة المزخرفة */}
+      {/* البوصلة المدمجة */}
       {isCompassActive && qiblaData && (
         <Card className="overflow-hidden">
-          <CardContent className="p-8">
+          <CardContent className="p-6">
             <QiblaCompass qiblaData={qiblaData} />
           </CardContent>
         </Card>

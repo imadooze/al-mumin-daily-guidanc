@@ -12,95 +12,72 @@ interface QiblaCompassProps {
 }
 
 export default function QiblaCompass({ qiblaData }: QiblaCompassProps) {
-  const isAccurate = Math.abs(qiblaData.qiblaRelativeDirection) < 10 || 
-                    Math.abs(qiblaData.qiblaRelativeDirection - 360) < 10;
+  const isAccurate = Math.abs(qiblaData.qiblaRelativeDirection) < 15 || 
+                    Math.abs(qiblaData.qiblaRelativeDirection - 360) < 15;
 
-  // توليد النقاط الزخرفية
-  const decorativePoints = Array.from({ length: 72 }, (_, i) => {
-    const angle = i * 5;
-    const isMainDirection = angle % 90 === 0;
-    const isSecondaryDirection = angle % 30 === 0 && !isMainDirection;
-    
-    return {
-      angle,
-      isMain: isMainDirection,
-      isSecondary: isSecondaryDirection,
-      size: isMainDirection ? 3 : isSecondaryDirection ? 2 : 1
-    };
-  });
-
-  // رسم الزخارف الإسلامية
-  const decorativePattern = Array.from({ length: 8 }, (_, i) => {
-    const angle = i * 45;
-    return (
-      <g key={i} transform={`rotate(${angle})`}>
-        <path
-          d="M 0,-140 Q 10,-135 0,-130 Q -10,-135 0,-140"
-          fill="hsl(var(--islamic-green))"
-          fillOpacity="0.6"
-          className="animate-pulse"
-          style={{ animationDelay: `${i * 0.2}s` }}
-        />
-      </g>
-    );
-  });
+  // اتجاهات البوصلة بالعربي
+  const directions = [
+    { label: 'ش', angle: 0, name: 'شمال' },
+    { label: 'ق', angle: 90, name: 'شرق' },
+    { label: 'ج', angle: 180, name: 'جنوب' },
+    { label: 'غ', angle: 270, name: 'غرب' }
+  ];
 
   return (
-    <div className="flex flex-col items-center space-y-6">
-      {/* البوصلة الرئيسية */}
+    <div className="flex flex-col items-center space-y-4">
+      {/* البوصلة المدمجة */}
       <div className="relative">
-        <div className="w-80 h-80 relative">
-          {/* الحلقة الخارجية المزخرفة */}
-          <div className="absolute inset-0 rounded-full border-4 border-primary/30 shadow-islamic-glow">
-            <svg className="w-full h-full" viewBox="0 0 320 320">
-              {/* خلفية دائرية */}
+        <div className="w-64 h-64 relative">
+          {/* الدائرة الخارجية */}
+          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-islamic-green/10 to-islamic-blue/10 border-3 border-primary/30 shadow-islamic-card">
+            <svg className="w-full h-full" viewBox="0 0 256 256">
+              {/* خلفية البوصلة */}
               <circle
-                cx="160"
-                cy="160"
-                r="150"
+                cx="128"
+                cy="128"
+                r="120"
                 fill="hsl(var(--background))"
                 stroke="hsl(var(--border))"
-                strokeWidth="2"
+                strokeWidth="1"
               />
               
-              {/* الزخارف الخارجية */}
-              <g transform="translate(160, 160)">
-                {decorativePattern}
-              </g>
-              
               {/* علامات الدرجات */}
-              <g transform="translate(160, 160)">
-                {decorativePoints.map((point, i) => (
-                  <line
-                    key={i}
-                    x1="0"
-                    y1={point.isMain ? "-145" : point.isSecondary ? "-140" : "-135"}
-                    x2="0"
-                    y2={point.isMain ? "-125" : point.isSecondary ? "-130" : "-133"}
-                    stroke={point.isMain ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))"}
-                    strokeWidth={point.size}
-                    transform={`rotate(${point.angle})`}
-                  />
-                ))}
+              <g transform="translate(128, 128)">
+                {Array.from({ length: 36 }).map((_, i) => {
+                  const angle = i * 10;
+                  const isMain = angle % 90 === 0;
+                  const isSecondary = angle % 30 === 0;
+                  
+                  return (
+                    <line
+                      key={i}
+                      x1="0"
+                      y1={isMain ? "-115" : isSecondary ? "-110" : "-108"}
+                      x2="0"
+                      y2={isMain ? "-100" : isSecondary ? "-105" : "-106"}
+                      stroke={isMain ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))"}
+                      strokeWidth={isMain ? "2" : "1"}
+                      transform={`rotate(${angle})`}
+                    />
+                  );
+                })}
               </g>
               
               {/* اتجاهات البوصلة */}
-              <g transform="translate(160, 160)">
-                {['N', 'E', 'S', 'W'].map((direction, index) => {
-                  const angle = index * 90;
-                  const x = Math.sin((angle * Math.PI) / 180) * 110;
-                  const y = -Math.cos((angle * Math.PI) / 180) * 110;
+              <g transform="translate(128, 128)">
+                {directions.map((dir) => {
+                  const x = Math.sin((dir.angle * Math.PI) / 180) * 90;
+                  const y = -Math.cos((dir.angle * Math.PI) / 180) * 90;
                   
                   return (
-                    <g key={direction}>
+                    <g key={dir.label}>
                       <text
                         x={x}
-                        y={y + 5}
+                        y={y + 6}
                         textAnchor="middle"
-                        className="text-lg font-bold fill-foreground"
-                        transform={`rotate(${-qiblaData.userHeading} ${x} ${y})`}
+                        className="text-lg font-bold fill-primary"
                       >
-                        {direction}
+                        {dir.label}
                       </text>
                     </g>
                   );
@@ -109,50 +86,46 @@ export default function QiblaCompass({ qiblaData }: QiblaCompassProps) {
             </svg>
           </div>
 
-          {/* الدائرة الداخلية مع النص العربي */}
-          <div 
-            className="absolute inset-8 rounded-full bg-gradient-to-br from-islamic-green/20 to-islamic-blue/20 border-2 border-primary/40 flex items-center justify-center transition-transform duration-300"
-            style={{ transform: `rotate(${-qiblaData.userHeading}deg)` }}
-          >
+          {/* النص المركزي الثابت */}
+          <div className="absolute inset-6 rounded-full bg-gradient-to-br from-islamic-green/5 to-islamic-blue/5 border border-primary/20 flex items-center justify-center">
             <div className="text-center">
-              <div className="text-2xl font-arabic-display text-primary mb-2 leading-relaxed">
+              <div className="text-lg font-arabic-display text-primary mb-1 leading-tight">
                 لَا إِلَٰهَ إِلَّا ٱللَّٰهُ
               </div>
-              <div className="text-lg font-arabic-display text-muted-foreground">
+              <div className="text-sm font-arabic-display text-muted-foreground">
                 مُحَمَّدٌ رَسُولُ ٱللَّٰهِ
               </div>
             </div>
           </div>
 
-          {/* مؤشر القبلة */}
+          {/* السهم المتحرك فقط */}
           <div 
-            className="absolute inset-0 transition-transform duration-300 z-10"
+            className="absolute inset-0 transition-transform duration-500 ease-out z-10"
             style={{ transform: `rotate(${qiblaData.qiblaRelativeDirection}deg)` }}
           >
-            <div className="absolute top-2 left-1/2 transform -translate-x-1/2 flex flex-col items-center">
-              {/* أيقونة الكعبة */}
-              <div className="w-10 h-10 bg-islamic-gold rounded-lg flex items-center justify-center text-white text-xl mb-2 animate-pulse-islamic">
-                🕋
+            <div className="absolute top-1 left-1/2 transform -translate-x-1/2">
+              {/* سهم القبلة */}
+              <div className="flex flex-col items-center">
+                <div className="w-8 h-8 bg-gradient-to-br from-islamic-gold to-yellow-600 rounded-lg flex items-center justify-center text-white text-lg shadow-lg animate-pulse">
+                  🕋
+                </div>
+                <div className="w-1 h-8 bg-gradient-to-b from-islamic-gold to-primary rounded-full shadow-md"></div>
               </div>
-              {/* السهم */}
-              <div className="w-1 h-12 bg-gradient-to-b from-islamic-gold to-primary rounded-full"></div>
             </div>
           </div>
 
           {/* النقطة المركزية */}
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-            <div className="w-6 h-6 bg-primary rounded-full shadow-islamic-glow animate-glow-pulse"></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20">
+            <div className="w-4 h-4 bg-primary rounded-full shadow-islamic-glow"></div>
           </div>
+        </div>
 
-          {/* عرض الدرجة الحالية */}
-          <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-center">
-            <div className="text-3xl font-bold text-primary">
-              {Math.round(qiblaData.userHeading)}°
-            </div>
-            <div className="text-sm text-muted-foreground">
-              اتجاه الجهاز
-            </div>
+        {/* المعلومات السفلية */}
+        <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 text-center">
+          <div className="text-2xl font-bold text-primary">
+            {Math.round(qiblaData.userHeading)}°
           </div>
+          <div className="text-xs text-muted-foreground">اتجاه الجهاز</div>
         </div>
       </div>
 
