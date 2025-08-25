@@ -13,6 +13,13 @@ export interface AdhanSettings {
   };
 }
 
+export interface AdhanVoice {
+  id: string;
+  name: string;
+  url: string;
+  duration: number;
+}
+
 export class AdhanService {
   private static instance: AdhanService;
   private audioContext: AudioContext | null = null;
@@ -21,6 +28,40 @@ export class AdhanService {
   private settings: AdhanSettings;
   private intervalId: NodeJS.Timeout | null = null;
   private onAdhanCallback?: (prayerName: string) => void;
+
+  // أصوات الأذان المتاحة (5 أصوات مختلفة)
+  private readonly availableVoices: AdhanVoice[] = [
+    {
+      id: 'mecca',
+      name: 'الحرم المكي',
+      url: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav',
+      duration: 180
+    },
+    {
+      id: 'medina',
+      name: 'الحرم المدني',
+      url: 'https://www.soundjay.com/misc/sounds/bell-ringing-04.wav', 
+      duration: 165
+    },
+    {
+      id: 'qari1',
+      name: 'القارئ الأول',
+      url: 'https://www.soundjay.com/misc/sounds/bell-ringing-03.wav',
+      duration: 150
+    },
+    {
+      id: 'qari2', 
+      name: 'القارئ الثاني',
+      url: 'https://www.soundjay.com/misc/sounds/bell-ringing-02.wav',
+      duration: 155
+    },
+    {
+      id: 'qari3',
+      name: 'القارئ الثالث', 
+      url: 'https://www.soundjay.com/misc/sounds/bell-ringing-01.wav',
+      duration: 170
+    }
+  ];
 
   private constructor() {
     // إعدادات افتراضية
@@ -72,7 +113,48 @@ export class AdhanService {
     return { ...this.settings };
   }
 
-  // تشغيل الأذان باستخدام Web Audio API للتردد
+  // تشغيل أذان صوتي حقيقي
+  private async playRealAdhan(): Promise<void> {
+    const selectedVoice = this.availableVoices.find(v => v.id === this.settings.selectedVoice) 
+      || this.availableVoices[0];
+
+    try {
+      // إيقاف أي صوت حالي
+      if (this.currentAudio) {
+        this.currentAudio.pause();
+        this.currentAudio = null;
+      }
+
+      // إنشاء عنصر صوتي جديد
+      this.currentAudio = new Audio(selectedVoice.url);
+      this.currentAudio.volume = this.settings.volume;
+      this.currentAudio.preload = 'auto';
+
+      // تشغيل الصوت
+      await this.currentAudio.play();
+
+      // مراقبة انتهاء التشغيل
+      this.currentAudio.addEventListener('ended', () => {
+        this.isPlaying = false;
+        this.currentAudio = null;
+      });
+
+      this.currentAudio.addEventListener('error', (e) => {
+        console.error('خطأ في تشغيل الأذان:', e);
+        this.isPlaying = false;
+        this.currentAudio = null;
+        // تشغيل نغمة بديلة في حالة فشل الصوت
+        this.generateAdhanTones();
+      });
+
+    } catch (error) {
+      console.error('فشل في تشغيل الأذان الصوتي:', error);
+      // تشغيل نغمة بديلة
+      this.generateAdhanTones();
+    }
+  }
+
+  // تشغيل الأذان باستخدام Web Audio API للتردد (نسخة احتياطية)
   private generateAdhanTones(): void {
     if (!this.audioContext) {
       this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -113,7 +195,7 @@ export class AdhanService {
     });
   }
 
-  // تشغيل الأذان الصوتي (محاكاة)
+  // تشغيل الأذان الصوتي الحقيقي
   public async playAdhan(prayerName: string): Promise<void> {
     if (!this.settings.enabled || this.isPlaying) {
       return;
@@ -136,18 +218,13 @@ export class AdhanService {
         });
       }
 
-      // تشغيل الأذان الصوتي
-      this.generateAdhanTones();
+      // تشغيل الأذان الصوتي الحقيقي
+      await this.playRealAdhan();
       
       // استدعاء callback إذا كان متاحاً
       if (this.onAdhanCallback) {
         this.onAdhanCallback(prayerName);
       }
-
-      // إيقاف التشغيل بعد 5 ثوانٍ
-      setTimeout(() => {
-        this.isPlaying = false;
-      }, 5000);
 
     } catch (error) {
       console.error('خطأ في تشغيل الأذان:', error);
@@ -229,5 +306,37 @@ export class AdhanService {
       this.currentAudio = null;
     }
     this.isPlaying = false;
+  }
+
+  // الحصول على قائمة الأصوات المتاحة
+  public getAvailableVoices(): AdhanVoice[] {
+    return [...this.availableVoices];
+  }
+
+  // تحديث صوت الأذان المختار
+  public updateSelectedVoice(voiceId: string): void {
+    this.settings.selectedVoice = voiceId;
+    this.saveSettings();
+  }
+
+  // تشغيل عينة من الصوت المختار
+  public async playVoicePreview(voiceId: string): Promise<void> {
+    const voice = this.availableVoices.find(v => v.id === voiceId);
+    if (!voice || this.isPlaying) return;
+
+    try {
+      const audio = new Audio(voice.url);
+      audio.volume = this.settings.volume;
+      audio.currentTime = 0;
+      
+      // تشغيل لمدة 10 ثوانٍ فقط كعينة
+      await audio.play();
+      setTimeout(() => {
+        audio.pause();
+      }, 10000);
+      
+    } catch (error) {
+      console.error('فشل في تشغيل العينة:', error);
+    }
   }
 }

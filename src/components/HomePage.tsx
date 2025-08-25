@@ -6,6 +6,7 @@ import { Clock, MapPin, BookOpen, Heart, Star, ArrowRight, Compass, ChevronRight
 import { useTranslations } from '@/lib/translations';
 import { getWeatherByCoordinates, getDemoWeatherData, WeatherData } from '@/lib/weather-api';
 import { AdhanService } from '@/lib/adhan-service';
+import AdhanSettingsModal from './AdhanSettingsModal';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { usePrayerMonitor } from '@/hooks/use-prayer-monitor';
 import OfflineManager from '@/lib/offline-manager';
@@ -36,6 +37,7 @@ export default function HomePage({ onPageChange }: HomePageProps) {
   const [adhanEnabled, setAdhanEnabled] = useLocalStorage<boolean>('adhan-enabled', true);
   const [showAdhanNotification, setShowAdhanNotification] = useState(false);
   const [currentAdhanPrayer, setCurrentAdhanPrayer] = useState('');
+  const [showAdhanSettings, setShowAdhanSettings] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [lastSyncTime, setLastSyncTime] = useState<number>(0);
   const [offlineManager] = useState(() => OfflineManager.getInstance());
@@ -401,10 +403,16 @@ export default function HomePage({ onPageChange }: HomePageProps) {
             <p className="text-lg font-arabic text-foreground">جاري تحميل البيانات...</p>
             <p className="text-sm text-muted-foreground">الرجاء الانتظار قليلاً</p>
           </div>
-        </div>
       </div>
-    );
-  }
+
+      {/* مودال إعدادات الأذان */}
+      <AdhanSettingsModal 
+        isOpen={showAdhanSettings}
+        onClose={() => setShowAdhanSettings(false)}
+      />
+    </div>
+  );
+}
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-islamic-cream/20 to-background">

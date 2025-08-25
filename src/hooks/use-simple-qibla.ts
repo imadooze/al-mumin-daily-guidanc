@@ -25,37 +25,73 @@ export function useSimpleQibla() {
   const compass = SimpleCompass.getInstance();
   const isMounted = useRef(true);
 
-  // الحصول على الموقع
+  // الحصول على الموقع بسرعة ودقة عالية
   const getLocation = useCallback(async (): Promise<{ lat: number; lng: number } | null> => {
     if (!navigator.geolocation) {
       throw new Error('الجهاز لا يدعم تحديد الموقع');
     }
 
+    // محاولة الحصول على موقع مخزن مؤقتاً
+    const cachedLocation = localStorage.getItem('cached-location');
+    let hasCached = false;
+
+    if (cachedLocation) {
+      try {
+        const parsed = JSON.parse(cachedLocation);
+        const age = Date.now() - parsed.timestamp;
+        // استخدام الموقع المخزن إذا كان عمره أقل من دقيقتين
+        if (age < 120000) {
+          hasCached = true;
+        }
+      } catch (e) {
+        localStorage.removeItem('cached-location');
+      }
+    }
+
     return new Promise((resolve, reject) => {
+      // وقت أقل للاستجابة السريعة
       const timeoutId = setTimeout(() => {
-        // استخدام موقع افتراضي (الرياض) في حالة انتهاء الوقت
-        const defaultLocation = { lat: 24.7136, lng: 46.6753 };
-        resolve(defaultLocation);
-      }, 8000);
+        if (hasCached) {
+          const parsed = JSON.parse(cachedLocation!);
+          resolve({ lat: parsed.lat, lng: parsed.lng });
+        } else {
+          // استخدام موقع افتراضي (الرياض)
+          const defaultLocation = { lat: 24.7136, lng: 46.6753 };
+          resolve(defaultLocation);
+        }
+      }, 3000); // تقليل الوقت إلى 3 ثوانٍ
 
       navigator.geolocation.getCurrentPosition(
         (position) => {
           clearTimeout(timeoutId);
-          resolve({
+          const location = {
             lat: position.coords.latitude,
             lng: position.coords.longitude
-          });
+          };
+          
+          // حفظ الموقع مع الطابع الزمني
+          localStorage.setItem('cached-location', JSON.stringify({
+            ...location,
+            timestamp: Date.now()
+          }));
+          
+          resolve(location);
         },
         (error) => {
           clearTimeout(timeoutId);
-          // استخدام موقع افتراضي في حالة الخطأ
-          const defaultLocation = { lat: 24.7136, lng: 46.6753 };
-          resolve(defaultLocation);
+          if (hasCached) {
+            const parsed = JSON.parse(cachedLocation!);
+            resolve({ lat: parsed.lat, lng: parsed.lng });
+          } else {
+            // استخدام موقع افتراضي في حالة الخطأ
+            const defaultLocation = { lat: 24.7136, lng: 46.6753 };
+            resolve(defaultLocation);
+          }
         },
         {
           enableHighAccuracy: true,
-          timeout: 7000,
-          maximumAge: 300000 // 5 دقائق
+          timeout: 2500, // تقليل الوقت
+          maximumAge: 60000 // دقيقة واحدة فقط
         }
       );
     });
