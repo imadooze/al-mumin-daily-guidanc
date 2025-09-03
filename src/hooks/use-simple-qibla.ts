@@ -1,13 +1,14 @@
 /**
- * هوك مبسط وموثوق للقبلة
+ * هوك محسن ودقيق للقبلة مع تقنيات حديثة
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import SimpleCompass, { QiblaData, CompassData } from '@/lib/simple-compass';
+import { EnhancedCompass, type CompassReading } from '@/lib/enhanced-compass';
+import { PreciseQiblaCalculator, type QiblaCalculationData, type LocationData } from '@/lib/precise-qibla-calculator';
 
 interface QiblaState {
-  qiblaData: QiblaData | null;
-  location: { lat: number; lng: number } | null;
+  qiblaData: QiblaCalculationData | null;
+  location: LocationData | null;
   isLoading: boolean;
   error: string | null;
   isCompassActive: boolean;
@@ -22,82 +23,104 @@ export function useSimpleQibla() {
     isCompassActive: false
   });
 
-  const compass = SimpleCompass.getInstance();
+  const compass = EnhancedCompass.getInstance();
   const isMounted = useRef(true);
+  const compassListener = useRef<((reading: CompassReading) => void) | null>(null);
 
-  // الحصول على الموقع بسرعة ودقة عالية
-  const getLocation = useCallback(async (): Promise<{ lat: number; lng: number } | null> => {
+  // الحصول على الموقع بسرعة ودقة عالية مع تحسينات
+  const getLocation = useCallback(async (): Promise<LocationData | null> => {
     if (!navigator.geolocation) {
       throw new Error('الجهاز لا يدعم تحديد الموقع');
     }
 
-    // محاولة الحصول على موقع مخزن مؤقتاً
-    const cachedLocation = localStorage.getItem('cached-location');
+    // محاولة الحصول على موقع مخزن مؤقتاً مع تحسين الذاكرة
+    const cachedLocation = localStorage.getItem('enhanced-location-cache');
     let hasCached = false;
 
     if (cachedLocation) {
       try {
         const parsed = JSON.parse(cachedLocation);
         const age = Date.now() - parsed.timestamp;
-        // استخدام الموقع المخزن إذا كان عمره أقل من دقيقتين
-        if (age < 120000) {
+        // استخدام الموقع المخزن إذا كان عمره أقل من 90 ثانية
+        if (age < 90000) {
           hasCached = true;
         }
       } catch (e) {
-        localStorage.removeItem('cached-location');
+        localStorage.removeItem('enhanced-location-cache');
       }
     }
 
-    return new Promise((resolve, reject) => {
-      // وقت أقل للاستجابة السريعة
+    return new Promise((resolve) => {
+      // وقت أسرع للاستجابة
       const timeoutId = setTimeout(() => {
         if (hasCached) {
           const parsed = JSON.parse(cachedLocation!);
-          resolve({ lat: parsed.lat, lng: parsed.lng });
+          resolve({
+            latitude: parsed.latitude,
+            longitude: parsed.longitude,
+            accuracy: parsed.accuracy || 100,
+            timestamp: parsed.timestamp
+          });
         } else {
-          // استخدام موقع افتراضي (الرياض)
-          const defaultLocation = { lat: 24.7136, lng: 46.6753 };
+          // استخدام موقع افتراضي (مكة المكرمة للاختبار)
+          const defaultLocation: LocationData = { 
+            latitude: 21.4225, 
+            longitude: 39.8262,
+            accuracy: 1000,
+            timestamp: Date.now()
+          };
           resolve(defaultLocation);
         }
-      }, 3000); // تقليل الوقت إلى 3 ثوانٍ
+      }, 2000); // تقليل الوقت إلى ثانيتين
 
       navigator.geolocation.getCurrentPosition(
         (position) => {
           clearTimeout(timeoutId);
-          const location = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
+          const location: LocationData = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy,
+            timestamp: Date.now()
           };
           
-          // حفظ الموقع مع الطابع الزمني
-          localStorage.setItem('cached-location', JSON.stringify({
-            ...location,
-            timestamp: Date.now()
-          }));
+          // حفظ الموقع مع تفاصيل إضافية
+          localStorage.setItem('enhanced-location-cache', JSON.stringify(location));
           
           resolve(location);
         },
         (error) => {
           clearTimeout(timeoutId);
+          console.warn('خطأ في تحديد الموقع:', error.message);
+          
           if (hasCached) {
             const parsed = JSON.parse(cachedLocation!);
-            resolve({ lat: parsed.lat, lng: parsed.lng });
+            resolve({
+              latitude: parsed.latitude,
+              longitude: parsed.longitude,
+              accuracy: parsed.accuracy || 100,
+              timestamp: parsed.timestamp
+            });
           } else {
-            // استخدام موقع افتراضي في حالة الخطأ
-            const defaultLocation = { lat: 24.7136, lng: 46.6753 };
+            // موقع افتراضي محسن
+            const defaultLocation: LocationData = { 
+              latitude: 21.4225, 
+              longitude: 39.8262,
+              accuracy: 1000,
+              timestamp: Date.now()
+            };
             resolve(defaultLocation);
           }
         },
         {
           enableHighAccuracy: true,
-          timeout: 2500, // تقليل الوقت
-          maximumAge: 60000 // دقيقة واحدة فقط
+          timeout: 1800, // وقت أسرع
+          maximumAge: 45000 // 45 ثانية فقط
         }
       );
     });
   }, []);
 
-  // بدء البوصلة
+  // بدء البوصلة المحسنة
   const startCompass = useCallback(async () => {
     if (!isMounted.current) return;
 
@@ -115,14 +138,26 @@ export function useSimpleQibla() {
 
       setState(prev => ({ ...prev, location, isLoading: true }));
 
-      // بدء البوصلة
+      // بدء البوصلة المحسنة
       await compass.startWatching();
 
-      // إعداد مستمع البوصلة
-      const compassListener = (compassData: CompassData) => {
+      // إعداد مستمع البوصلة المحسن
+      const enhancedCompassListener = (reading: CompassReading) => {
         if (!isMounted.current || !location) return;
 
-        const qiblaData = compass.calculateQibla(location.lat, location.lng);
+        // التحقق من صحة الإحداثيات
+        if (!PreciseQiblaCalculator.validateCoordinates(location.latitude, location.longitude)) {
+          console.warn('إحداثيات غير صحيحة:', location);
+          return;
+        }
+
+        // حساب بيانات القبلة بدقة عالية
+        const qiblaData = PreciseQiblaCalculator.calculateFullQiblaData(
+          location,
+          reading.heading,
+          reading.accuracy,
+          reading.isCalibrated
+        );
         
         setState(prev => ({
           ...prev,
@@ -133,11 +168,16 @@ export function useSimpleQibla() {
         }));
       };
 
-      compass.addListener(compassListener);
+      // حفظ مرجع المستمع للتنظيف
+      compassListener.current = enhancedCompassListener;
+      compass.addListener(enhancedCompassListener);
 
       // تنظيف المستمع عند الإغلاق
       return () => {
-        compass.removeListener(compassListener);
+        if (compassListener.current) {
+          compass.removeListener(compassListener.current);
+          compassListener.current = null;
+        }
       };
 
     } catch (error) {
@@ -152,8 +192,14 @@ export function useSimpleQibla() {
     }
   }, [compass, getLocation]);
 
-  // إيقاف البوصلة
+  // إيقاف البوصلة المحسن
   const stopCompass = useCallback(() => {
+    // تنظيف المستمع
+    if (compassListener.current) {
+      compass.removeListener(compassListener.current);
+      compassListener.current = null;
+    }
+    
     compass.stopWatching();
     setState(prev => ({
       ...prev,
@@ -162,18 +208,31 @@ export function useSimpleQibla() {
     }));
   }, [compass]);
 
-  // تحديث الموقع
+  // تحديث الموقع المحسن
   const updateLocation = useCallback(async () => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
+      // مسح الكاش القديم قبل الحصول على موقع جديد
+      localStorage.removeItem('enhanced-location-cache');
+      
       const newLocation = await getLocation();
       if (newLocation && isMounted.current) {
         setState(prev => ({ ...prev, location: newLocation, isLoading: false }));
         
-        // إعادة حساب القبلة مع الموقع الجديد
-        if (state.isCompassActive) {
-          const qiblaData = compass.calculateQibla(newLocation.lat, newLocation.lng);
+        // إعادة حساب القبلة مع الموقع الجديد إذا كانت البوصلة نشطة
+        if (state.isCompassActive && compass.getCurrentHeading) {
+          const currentHeading = compass.getCurrentHeading();
+          const currentAccuracy = compass.getCurrentAccuracy();
+          const compassStatus = compass.getStatus();
+          
+          const qiblaData = PreciseQiblaCalculator.calculateFullQiblaData(
+            newLocation,
+            currentHeading,
+            currentAccuracy,
+            compassStatus.isCalibrated
+          );
+          
           setState(prev => ({ ...prev, qiblaData }));
         }
       }
@@ -186,12 +245,19 @@ export function useSimpleQibla() {
     }
   }, [compass, getLocation, state.isCompassActive]);
 
-  // تنظيف الموارد
+  // تنظيف الموارد المحسن
   useEffect(() => {
     isMounted.current = true;
     
     return () => {
       isMounted.current = false;
+      
+      // تنظيف شامل
+      if (compassListener.current) {
+        compass.removeListener(compassListener.current);
+        compassListener.current = null;
+      }
+      
       compass.stopWatching();
     };
   }, [compass]);

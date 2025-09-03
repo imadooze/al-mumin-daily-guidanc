@@ -159,7 +159,10 @@ export default function QiblaPage({ onPageChange }: QiblaPageProps) {
         <Card className="overflow-hidden">
           <CardContent className="p-0">
             <QiblaMapView 
-              location={location}
+              location={location ? { 
+                lat: location.latitude, 
+                lng: location.longitude 
+              } : null}
               qiblaDirection={qiblaData.qiblaDirection}
               distance={qiblaData.distance}
             />
