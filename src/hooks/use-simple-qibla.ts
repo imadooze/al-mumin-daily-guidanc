@@ -1,16 +1,16 @@
 /**
- * هوك محسن ودقيق للقبلة مع GPS عالي الدقة
+ * هوك محسن ودقيق للقبلة مع GPS مبسط وموثوق
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { EnhancedCompass, type CompassReading } from '@/lib/enhanced-compass';
 import { PreciseQiblaCalculator, type QiblaCalculationData } from '@/lib/precise-qibla-calculator';
-import { useEnhancedGPS } from './use-enhanced-gps';
-import type { GPSPosition } from '@/lib/enhanced-gps';
+import { useSimpleGPS } from './use-simple-gps';
+import type { SimpleGPSPosition } from '@/lib/simple-gps';
 
 interface QiblaState {
   qiblaData: QiblaCalculationData | null;
-  location: GPSPosition | null;
+  location: SimpleGPSPosition | null;
   isLoading: boolean;
   error: string | null;
   isCompassActive: boolean;
@@ -25,17 +25,17 @@ export function useSimpleQibla() {
     isCompassActive: false
   });
 
-  // استخدام GPS المحسن
+  // استخدام GPS المبسط
   const {
     position: gpsPosition,
-    status: gpsStatus,
     isLoading: gpsLoading,
     error: gpsError,
+    accuracy: gpsAccuracy,
     startTracking: startGPS,
     stopTracking: stopGPS,
     refreshPosition: refreshGPS,
     isSupported: gpsSupported
-  } = useEnhancedGPS();
+  } = useSimpleGPS();
 
   const compass = EnhancedCompass.getInstance();
   const isMounted = useRef(true);
@@ -75,10 +75,9 @@ export function useSimpleQibla() {
 
       // بدء GPS أولاً
       await startGPS({
-        desiredAccuracy: 10,
         enableHighAccuracy: true,
         timeout: 8000,
-        maxRetries: 2
+        maximumAge: 30000
       });
 
       // انتظار الحصول على الموقع
@@ -162,10 +161,9 @@ export function useSimpleQibla() {
     
     try {
       await refreshGPS({
-        desiredAccuracy: 8,
         enableHighAccuracy: true,
         timeout: 10000,
-        maxRetries: 3
+        maximumAge: 0
       });
 
       // إعادة حساب القبلة مع الموقع الجديد إذا كانت البوصلة نشطة
@@ -216,7 +214,6 @@ export function useSimpleQibla() {
     stopCompass,
     updateLocation,
     isSupported: compass.isSupported() && gpsSupported,
-    gpsStatus,
     gpsAccuracy: gpsPosition?.accuracy || 0
   };
 }
