@@ -38,6 +38,7 @@ class SimpleGPS {
 
   /**
    * الحصول على الموقع بطريقة مبسطة وموثوقة
+   * تقبل دقة حتى 100 متر للمناطق العامة
    */
   async getCurrentPosition(options: SimpleGPSOptions = {}): Promise<SimpleGPSPosition> {
     const {
@@ -89,7 +90,13 @@ class SimpleGPS {
             timestamp: Date.now()
           };
           
-          console.log(`✅ موقع GPS حقيقي: ${gpsPosition.accuracy.toFixed(1)}م`);
+          // قبول أي دقة معقولة (حتى 200 متر)
+          if (gpsPosition.accuracy <= 200) {
+            console.log(`✅ موقع GPS مقبول: ${gpsPosition.accuracy.toFixed(1)}م`);
+          } else {
+            console.log(`⚠️ موقع GPS دقة منخفضة: ${gpsPosition.accuracy.toFixed(1)}م - لكن سيعمل`);
+          }
+          
           this.savePosition(gpsPosition);
           resolve(gpsPosition);
         },

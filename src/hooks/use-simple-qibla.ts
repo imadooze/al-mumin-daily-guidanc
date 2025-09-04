@@ -73,22 +73,19 @@ export function useSimpleQibla() {
         throw new Error('GPS غير مدعوم في هذا الجهاز');
       }
 
-      // بدء GPS أولاً
+      // بدء GPS أولاً - قبول دقة أقل
+      console.log('🎯 بدء تشغيل البوصلة...');
       await startGPS({
         enableHighAccuracy: true,
         timeout: 8000,
         maximumAge: 30000
       });
 
-      // انتظار الحصول على الموقع
-      let retries = 10;
-      while (!gpsPosition && retries > 0 && isMounted.current) {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        retries--;
-      }
+      // انتظار قصير للحصول على الموقع
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-      if (!gpsPosition || !isMounted.current) {
-        throw new Error('فشل في الحصول على الموقع');
+      if (!gpsPosition && isMounted.current) {
+        throw new Error('لم يتم الحصول على الموقع بعد');
       }
 
       // بدء البوصلة المحسنة
@@ -104,13 +101,15 @@ export function useSimpleQibla() {
           return;
         }
 
-        // حساب بيانات القبلة بدقة عالية
+        // حساب بيانات القبلة بدقة عالية (قبول أي دقة)
         const qiblaData = PreciseQiblaCalculator.calculateFullQiblaData(
           gpsPosition,
           reading.heading,
           reading.accuracy,
           reading.isCalibrated
         );
+        
+        console.log(`🧭 البوصلة تعمل - دقة الموقع: ${gpsPosition.accuracy.toFixed(1)}م`);
         
         setState(prev => ({
           ...prev,
