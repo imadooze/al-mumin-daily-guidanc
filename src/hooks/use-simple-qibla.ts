@@ -1,14 +1,16 @@
 /**
- * هوك محسن ودقيق للقبلة مع تقنيات حديثة
+ * هوك محسن ودقيق للقبلة مع GPS عالي الدقة
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { EnhancedCompass, type CompassReading } from '@/lib/enhanced-compass';
-import { PreciseQiblaCalculator, type QiblaCalculationData, type LocationData } from '@/lib/precise-qibla-calculator';
+import { PreciseQiblaCalculator, type QiblaCalculationData } from '@/lib/precise-qibla-calculator';
+import { useEnhancedGPS } from './use-enhanced-gps';
+import type { GPSPosition } from '@/lib/enhanced-gps';
 
 interface QiblaState {
   qiblaData: QiblaCalculationData | null;
-  location: LocationData | null;
+  location: GPSPosition | null;
   isLoading: boolean;
   error: string | null;
   isCompassActive: boolean;
@@ -23,137 +25,89 @@ export function useSimpleQibla() {
     isCompassActive: false
   });
 
+  // استخدام GPS المحسن
+  const {
+    position: gpsPosition,
+    status: gpsStatus,
+    isLoading: gpsLoading,
+    error: gpsError,
+    startTracking: startGPS,
+    stopTracking: stopGPS,
+    refreshPosition: refreshGPS,
+    isSupported: gpsSupported
+  } = useEnhancedGPS();
+
   const compass = EnhancedCompass.getInstance();
   const isMounted = useRef(true);
   const compassListener = useRef<((reading: CompassReading) => void) | null>(null);
 
-  // الحصول على الموقع بسرعة ودقة عالية مع تحسينات
-  const getLocation = useCallback(async (): Promise<LocationData | null> => {
-    if (!navigator.geolocation) {
-      throw new Error('الجهاز لا يدعم تحديد الموقع');
+  // تحديث الموقع عندما يتغير GPS
+  useEffect(() => {
+    if (gpsPosition) {
+      setState(prev => ({ ...prev, location: gpsPosition }));
     }
+  }, [gpsPosition]);
 
-    // محاولة الحصول على موقع مخزن مؤقتاً مع تحسين الذاكرة
-    const cachedLocation = localStorage.getItem('enhanced-location-cache');
-    let hasCached = false;
+  // تحديث حالة التحميل والأخطاء من GPS
+  useEffect(() => {
+    setState(prev => ({ 
+      ...prev, 
+      isLoading: gpsLoading,
+      error: gpsError 
+    }));
+  }, [gpsLoading, gpsError]);
 
-    if (cachedLocation) {
-      try {
-        const parsed = JSON.parse(cachedLocation);
-        const age = Date.now() - parsed.timestamp;
-        // استخدام الموقع المخزن إذا كان عمره أقل من 90 ثانية
-        if (age < 90000) {
-          hasCached = true;
-        }
-      } catch (e) {
-        localStorage.removeItem('enhanced-location-cache');
-      }
-    }
-
-    return new Promise((resolve) => {
-      // وقت أسرع للاستجابة
-      const timeoutId = setTimeout(() => {
-        if (hasCached) {
-          const parsed = JSON.parse(cachedLocation!);
-          resolve({
-            latitude: parsed.latitude,
-            longitude: parsed.longitude,
-            accuracy: parsed.accuracy || 100,
-            timestamp: parsed.timestamp
-          });
-        } else {
-          // استخدام موقع افتراضي (مكة المكرمة للاختبار)
-          const defaultLocation: LocationData = { 
-            latitude: 21.4225, 
-            longitude: 39.8262,
-            accuracy: 1000,
-            timestamp: Date.now()
-          };
-          resolve(defaultLocation);
-        }
-      }, 2000); // تقليل الوقت إلى ثانيتين
-
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          clearTimeout(timeoutId);
-          const location: LocationData = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            accuracy: position.coords.accuracy,
-            timestamp: Date.now()
-          };
-          
-          // حفظ الموقع مع تفاصيل إضافية
-          localStorage.setItem('enhanced-location-cache', JSON.stringify(location));
-          
-          resolve(location);
-        },
-        (error) => {
-          clearTimeout(timeoutId);
-          console.warn('خطأ في تحديد الموقع:', error.message);
-          
-          if (hasCached) {
-            const parsed = JSON.parse(cachedLocation!);
-            resolve({
-              latitude: parsed.latitude,
-              longitude: parsed.longitude,
-              accuracy: parsed.accuracy || 100,
-              timestamp: parsed.timestamp
-            });
-          } else {
-            // موقع افتراضي محسن
-            const defaultLocation: LocationData = { 
-              latitude: 21.4225, 
-              longitude: 39.8262,
-              accuracy: 1000,
-              timestamp: Date.now()
-            };
-            resolve(defaultLocation);
-          }
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 1800, // وقت أسرع
-          maximumAge: 45000 // 45 ثانية فقط
-        }
-      );
-    });
-  }, []);
-
-  // بدء البوصلة المحسنة
+  // بدء البوصلة المحسنة مع GPS
   const startCompass = useCallback(async () => {
     if (!isMounted.current) return;
 
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      // التحقق من دعم البوصلة
+      // التحقق من دعم البوصلة و GPS
       if (!compass.isSupported()) {
         throw new Error('البوصلة غير مدعومة في هذا الجهاز');
       }
 
-      // الحصول على الموقع أولاً
-      const location = await getLocation();
-      if (!location || !isMounted.current) return;
+      if (!gpsSupported) {
+        throw new Error('GPS غير مدعوم في هذا الجهاز');
+      }
 
-      setState(prev => ({ ...prev, location, isLoading: true }));
+      // بدء GPS أولاً
+      await startGPS({
+        desiredAccuracy: 10,
+        enableHighAccuracy: true,
+        timeout: 8000,
+        maxRetries: 2
+      });
+
+      // انتظار الحصول على الموقع
+      let retries = 10;
+      while (!gpsPosition && retries > 0 && isMounted.current) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        retries--;
+      }
+
+      if (!gpsPosition || !isMounted.current) {
+        throw new Error('فشل في الحصول على الموقع');
+      }
 
       // بدء البوصلة المحسنة
       await compass.startWatching();
 
       // إعداد مستمع البوصلة المحسن
       const enhancedCompassListener = (reading: CompassReading) => {
-        if (!isMounted.current || !location) return;
+        if (!isMounted.current || !gpsPosition) return;
 
         // التحقق من صحة الإحداثيات
-        if (!PreciseQiblaCalculator.validateCoordinates(location.latitude, location.longitude)) {
-          console.warn('إحداثيات غير صحيحة:', location);
+        if (!PreciseQiblaCalculator.validateCoordinates(gpsPosition.latitude, gpsPosition.longitude)) {
+          console.warn('إحداثيات غير صحيحة:', gpsPosition);
           return;
         }
 
         // حساب بيانات القبلة بدقة عالية
         const qiblaData = PreciseQiblaCalculator.calculateFullQiblaData(
-          location,
+          gpsPosition,
           reading.heading,
           reading.accuracy,
           reading.isCalibrated
@@ -172,14 +126,6 @@ export function useSimpleQibla() {
       compassListener.current = enhancedCompassListener;
       compass.addListener(enhancedCompassListener);
 
-      // تنظيف المستمع عند الإغلاق
-      return () => {
-        if (compassListener.current) {
-          compass.removeListener(compassListener.current);
-          compassListener.current = null;
-        }
-      };
-
     } catch (error) {
       if (isMounted.current) {
         setState(prev => ({
@@ -190,7 +136,7 @@ export function useSimpleQibla() {
         }));
       }
     }
-  }, [compass, getLocation]);
+  }, [compass, gpsSupported, startGPS, gpsPosition]);
 
   // إيقاف البوصلة المحسن
   const stopCompass = useCallback(() => {
@@ -201,40 +147,41 @@ export function useSimpleQibla() {
     }
     
     compass.stopWatching();
+    stopGPS();
+    
     setState(prev => ({
       ...prev,
       isCompassActive: false,
       qiblaData: null
     }));
-  }, [compass]);
+  }, [compass, stopGPS]);
 
   // تحديث الموقع المحسن
   const updateLocation = useCallback(async () => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
-      // مسح الكاش القديم قبل الحصول على موقع جديد
-      localStorage.removeItem('enhanced-location-cache');
-      
-      const newLocation = await getLocation();
-      if (newLocation && isMounted.current) {
-        setState(prev => ({ ...prev, location: newLocation, isLoading: false }));
+      await refreshGPS({
+        desiredAccuracy: 8,
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maxRetries: 3
+      });
+
+      // إعادة حساب القبلة مع الموقع الجديد إذا كانت البوصلة نشطة
+      if (state.isCompassActive && gpsPosition && compass.getCurrentHeading) {
+        const currentHeading = compass.getCurrentHeading();
+        const currentAccuracy = compass.getCurrentAccuracy();
+        const compassStatus = compass.getStatus();
         
-        // إعادة حساب القبلة مع الموقع الجديد إذا كانت البوصلة نشطة
-        if (state.isCompassActive && compass.getCurrentHeading) {
-          const currentHeading = compass.getCurrentHeading();
-          const currentAccuracy = compass.getCurrentAccuracy();
-          const compassStatus = compass.getStatus();
-          
-          const qiblaData = PreciseQiblaCalculator.calculateFullQiblaData(
-            newLocation,
-            currentHeading,
-            currentAccuracy,
-            compassStatus.isCalibrated
-          );
-          
-          setState(prev => ({ ...prev, qiblaData }));
-        }
+        const qiblaData = PreciseQiblaCalculator.calculateFullQiblaData(
+          gpsPosition,
+          currentHeading,
+          currentAccuracy,
+          compassStatus.isCalibrated
+        );
+        
+        setState(prev => ({ ...prev, qiblaData }));
       }
     } catch (error) {
       setState(prev => ({
@@ -243,7 +190,7 @@ export function useSimpleQibla() {
         isLoading: false
       }));
     }
-  }, [compass, getLocation, state.isCompassActive]);
+  }, [refreshGPS, state.isCompassActive, gpsPosition, compass]);
 
   // تنظيف الموارد المحسن
   useEffect(() => {
@@ -259,14 +206,17 @@ export function useSimpleQibla() {
       }
       
       compass.stopWatching();
+      stopGPS();
     };
-  }, [compass]);
+  }, [compass, stopGPS]);
 
   return {
     ...state,
     startCompass,
     stopCompass,
     updateLocation,
-    isSupported: compass.isSupported()
+    isSupported: compass.isSupported() && gpsSupported,
+    gpsStatus,
+    gpsAccuracy: gpsPosition?.accuracy || 0
   };
 }
