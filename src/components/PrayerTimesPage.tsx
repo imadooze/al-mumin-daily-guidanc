@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, Clock, MapPin, Compass, Navigation, Loader2, AlertCircle } from 'lucide-react';
-import { getPrayerTimes, getCurrentLocation, calculateQiblaDirection, calculateDistanceToMecca, type PrayerData, type LocationInfo } from '@/lib/prayer-api';
+import { ArrowRight, Clock, MapPin, Compass, Navigation, Loader2, AlertCircle, Settings, Bell, Volume2 } from 'lucide-react';
+import { getCurrentLocation, calculateQiblaDirection, calculateDistanceToMecca, type LocationInfo } from '@/lib/prayer-api';
 import { useToast } from '@/hooks/use-toast';
+import { useEnhancedPrayerMonitor } from '@/hooks/use-enhanced-prayer-monitor';
+import EnhancedAdhanSettingsModal from '@/components/EnhancedAdhanSettingsModal';
 
 interface PrayerTimesPageProps {
   onPageChange?: (page: string) => void;
@@ -13,12 +15,27 @@ interface PrayerTimesPageProps {
 export default function PrayerTimesPage({ onPageChange }: PrayerTimesPageProps) {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [location, setLocation] = useState<LocationInfo | null>(null);
-  const [prayerData, setPrayerData] = useState<PrayerData | null>(null);
   const [qiblaDirection, setQiblaDirection] = useState(0);
   const [distanceToMecca, setDistanceToMecca] = useState(0);
   const [loading, setLoading] = useState(true);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [showAdhanSettings, setShowAdhanSettings] = useState(false);
   const { toast } = useToast();
+
+  // استخدام Hook محسن لمراقبة أوقات الصلاة مع الأذان
+  const {
+    currentPrayer,
+    nextPrayer,
+    allPrayers,
+    prayerData,
+    refreshPrayerTimes,
+    timeUntilNext,
+    adhanStatus
+  } = useEnhancedPrayerMonitor(
+    location?.latitude,
+    location?.longitude,
+    !!location
+  );
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -45,9 +62,8 @@ export default function PrayerTimesPage({ onPageChange }: PrayerTimesPageProps) 
       setQiblaDirection(qibla);
       setDistanceToMecca(distance);
       
-      // جلب أوقات الصلاة
-      const prayerTimesData = await getPrayerTimes(locationData.latitude, locationData.longitude);
-      setPrayerData(prayerTimesData);
+      // تحديث أوقات الصلاة باستخدام Hook المحسن
+      await refreshPrayerTimes();
       
       toast({
         title: 'تم تحديد الموقع',
@@ -67,36 +83,20 @@ export default function PrayerTimesPage({ onPageChange }: PrayerTimesPageProps) 
     }
   };
 
-  // تحويل أوقات الصلاة إلى تنسيق قابل للاستخدام
-  const getPrayerTimesArray = () => {
-    if (!prayerData) return [];
-    
-    const timings = prayerData.timings;
-    const now = new Date();
-    
-    return [
-      { name: 'الفجر', time: timings.Fajr, nameEn: 'Fajr', key: 'Fajr' },
-      { name: 'الشروق', time: timings.Sunrise, nameEn: 'Sunrise', key: 'Sunrise' },
-      { name: 'الظهر', time: timings.Dhuhr, nameEn: 'Dhuhr', key: 'Dhuhr' },
-      { name: 'العصر', time: timings.Asr, nameEn: 'Asr', key: 'Asr' },
-      { name: 'المغرب', time: timings.Maghrib, nameEn: 'Maghrib', key: 'Maghrib' },
-      { name: 'العشاء', time: timings.Isha, nameEn: 'Isha', key: 'Isha' },
-    ].map(prayer => {
-      const [hours, minutes] = prayer.time.split(':').map(Number);
-      const prayerTime = new Date();
-      prayerTime.setHours(hours, minutes, 0, 0);
-      
-      return {
-        ...prayer,
-        passed: prayerTime < now,
-        current: false, // سيتم حسابها لاحقاً
-        timeUntil: prayerTime > now ? Math.floor((prayerTime.getTime() - now.getTime()) / (1000 * 60)) : null
-      };
-    });
+  // معلومات حالة الأذان
+  const getAdhanStatusText = () => {
+    if (!adhanStatus.isEnabled) return 'معطل';
+    if (adhanStatus.isPlaying) return 'يتم التشغيل...';
+    if (adhanStatus.isMonitoring) return 'مفعل ومراقب';
+    return 'مفعل';
   };
 
-  const prayerTimes = getPrayerTimesArray();
-  const nextPrayer = prayerTimes.find(p => !p.passed && p.timeUntil !== null);
+  const getAdhanStatusColor = () => {
+    if (!adhanStatus.isEnabled) return 'text-muted-foreground';
+    if (adhanStatus.isPlaying) return 'text-islamic-gold';
+    if (adhanStatus.isMonitoring) return 'text-islamic-green';
+    return 'text-islamic-blue';
+  };
 
   return (
     <div className="space-y-6">
@@ -169,8 +169,26 @@ export default function PrayerTimesPage({ onPageChange }: PrayerTimesPageProps) 
         </Card>
       )}
 
-      {/* الصلاة القادمة */}
-      {nextPrayer && nextPrayer.timeUntil && (
+      {/* الصلاة الحالية والقادمة */}
+      {currentPrayer && (
+        <Card className="islamic-card border-islamic-green shadow-islamic">
+          <CardContent className="p-6">
+            <div className="text-center space-y-3">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Bell className="h-5 w-5 text-islamic-green animate-pulse" />
+                <span className="text-sm text-muted-foreground">الصلاة الحالية</span>
+              </div>
+              <h2 className="text-2xl font-bold text-islamic-green">{currentPrayer.name}</h2>
+              <p className="text-3xl font-bold text-primary">{currentPrayer.time}</p>
+              <Badge className="bg-islamic-green hover:bg-islamic-green/90 text-white animate-pulse">
+                حان الآن وقت الصلاة
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {!currentPrayer && nextPrayer && timeUntilNext && (
         <Card className="islamic-card">
           <CardContent className="p-6">
             <div className="text-center space-y-3">
@@ -181,22 +199,59 @@ export default function PrayerTimesPage({ onPageChange }: PrayerTimesPageProps) 
               <h2 className="text-2xl font-bold text-islamic-green">{nextPrayer.name}</h2>
               <p className="text-3xl font-bold text-primary">{nextPrayer.time}</p>
               <Badge className="bg-islamic-green hover:bg-islamic-green/90 text-white">
-                بعد {Math.floor(nextPrayer.timeUntil / 60)} ساعة و {nextPrayer.timeUntil % 60} دقيقة
+                بعد {timeUntilNext.hours} ساعة و {timeUntilNext.minutes} دقيقة و {timeUntilNext.seconds} ثانية
               </Badge>
             </div>
           </CardContent>
         </Card>
       )}
 
+      {/* حالة الأذان */}
+      <Card className="islamic-card">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Volume2 className={`h-5 w-5 ${getAdhanStatusColor()}`} />
+              <div>
+                <p className="font-medium">حالة الأذان</p>
+                <p className={`text-sm ${getAdhanStatusColor()}`}>
+                  {getAdhanStatusText()}
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex gap-2">
+              {adhanStatus.hasPermission ? (
+                <Badge className="bg-islamic-green text-white">
+                  مصرح
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-destructive">
+                  غير مصرح
+                </Badge>
+              )}
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAdhanSettings(true)}
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* جميع أوقات الصلاة */}
-      {prayerTimes.length > 0 && (
+      {allPrayers.length > 0 && (
         <Card className="islamic-card">
           <CardHeader>
             <CardTitle className="text-center">مواقيت الصلاة اليوم</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {prayerTimes.map((prayer) => (
+              {allPrayers.map((prayer) => (
                 <div
                   key={prayer.name}
                   className={`flex items-center justify-between p-4 rounded-lg border transition-all duration-300 ${
@@ -219,68 +274,21 @@ export default function PrayerTimesPage({ onPageChange }: PrayerTimesPageProps) 
                       <p className="font-medium font-arabic text-lg">{prayer.name}</p>
                       <p className="text-sm text-muted-foreground">{prayer.nameEn}</p>
                     </div>
+                    {prayer.enabled && (
+                      <Bell className="h-4 w-4 text-islamic-green" />
+                    )}
                   </div>
                   
                   <div className="text-left">
                     <p className="text-xl font-bold text-primary">{prayer.time}</p>
                     {prayer.current && (
-                      <Badge className="bg-islamic-green hover:bg-islamic-green/90 text-white text-xs">
+                      <Badge className="bg-islamic-green hover:bg-islamic-green/90 text-white text-xs animate-pulse">
                         الآن
                       </Badge>
-                    )}
-                    {prayer.timeUntil && !prayer.current && (
-                      <p className="text-xs text-muted-foreground">
-                        بعد {Math.floor(prayer.timeUntil / 60)}:{prayer.timeUntil % 60}
-                      </p>
                     )}
                   </div>
                 </div>
               ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* بوصلة القبلة */}
-      {location && (
-        <Card className="islamic-card">
-          <CardHeader>
-            <CardTitle className="text-center flex items-center justify-center gap-2">
-              <Compass className="h-5 w-5 text-islamic-green" />
-              اتجاه القبلة
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center space-y-4">
-              <div className="relative w-40 h-40 mx-auto">
-                <div className="w-full h-full border-4 border-islamic-green/30 rounded-full flex items-center justify-center relative">
-                  <div className="w-32 h-32 border-2 border-islamic-green/50 rounded-full flex items-center justify-center relative">
-                    <Navigation 
-                      className="h-8 w-8 text-islamic-green" 
-                      style={{ transform: `rotate(${qiblaDirection}deg)` }}
-                    />
-                    <div className="absolute top-2 text-xs font-bold text-islamic-green">ش</div>
-                    <div className="absolute bottom-2 text-xs font-bold text-muted-foreground">ج</div>
-                    <div className="absolute left-2 text-xs font-bold text-muted-foreground">غ</div>
-                    <div className="absolute right-2 text-xs font-bold text-muted-foreground">ق</div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <p className="text-lg font-bold text-islamic-green">
-                  {qiblaDirection}° 
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  المسافة إلى الكعبة: {distanceToMecca} كم
-                </p>
-                <Button 
-                  onClick={() => onPageChange?.('qibla')}
-                  className="bg-gradient-primary hover:shadow-islamic"
-                >
-                  فتح البوصلة المفصلة
-                </Button>
-              </div>
             </div>
           </CardContent>
         </Card>
@@ -293,21 +301,32 @@ export default function PrayerTimesPage({ onPageChange }: PrayerTimesPageProps) 
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            <Button variant="outline" className="w-full justify-start">
+            <Button 
+              variant="outline" 
+              className="w-full justify-start"
+              onClick={requestLocation}
+            >
               <MapPin className="h-4 w-4 ml-2" />
-              تغيير الموقع
+              تحديث الموقع
             </Button>
-            <Button variant="outline" className="w-full justify-start">
-              <Clock className="h-4 w-4 ml-2" />
-              طريقة حساب الأوقات
-            </Button>
-            <Button variant="outline" className="w-full justify-start">
-              <Navigation className="h-4 w-4 ml-2" />
-              تنبيهات الصلاة
+            
+            <Button 
+              variant="outline" 
+              className="w-full justify-start"
+              onClick={() => setShowAdhanSettings(true)}
+            >
+              <Volume2 className="h-4 w-4 ml-2" />
+              إعدادات الأذان
             </Button>
           </div>
         </CardContent>
       </Card>
+
+      {/* نافذة إعدادات الأذان */}
+      <EnhancedAdhanSettingsModal
+        isOpen={showAdhanSettings}
+        onClose={() => setShowAdhanSettings(false)}
+      />
     </div>
   );
 }
