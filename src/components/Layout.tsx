@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Moon, Sun, Home, BookOpen, Clock, Compass, Heart, Menu } from 'lucide-react';
 import { useTranslations } from '@/lib/translations';
@@ -10,6 +11,8 @@ interface LayoutProps {
 }
 
 export default function Layout({ children, currentPage = 'home', onPageChange }: LayoutProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('dark-mode');
     return saved ? JSON.parse(saved) : false;
@@ -35,6 +38,7 @@ export default function Layout({ children, currentPage = 'home', onPageChange }:
     { id: 'home', label: t.home, icon: Home },
     { id: 'quran', label: t.quran, icon: BookOpen },
     { id: 'prayer-times', label: t.prayer, icon: Clock },
+    { id: 'qibla', label: 'القبلة', icon: Compass },
     { id: 'azkar', label: t.azkar, icon: Heart },
     { id: 'more', label: t.more, icon: Menu },
   ];
@@ -65,9 +69,19 @@ export default function Layout({ children, currentPage = 'home', onPageChange }:
   }, []);
 
   const handleNavClick = (pageId: string) => {
-    if (onPageChange) {
+    if (pageId === 'qibla') {
+      navigate('/qibla');
+    } else if (pageId === 'home') {
+      navigate('/');
+    } else if (onPageChange) {
       onPageChange(pageId);
     }
+  };
+
+  // تحديد الصفحة الحالية بناءً على المسار
+  const getCurrentPage = () => {
+    if (location.pathname === '/qibla') return 'qibla';
+    return currentPage;
   };
 
   return (
@@ -116,17 +130,17 @@ export default function Layout({ children, currentPage = 'home', onPageChange }:
                 key={item.id}
                 variant="ghost"
                 className={`flex flex-col items-center gap-1 h-auto py-3 px-4 rounded-xl transition-all duration-300 ${
-                  currentPage === item.id 
+                  getCurrentPage() === item.id 
                     ? 'text-primary bg-primary/10 scale-105 shadow-islamic-soft' 
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:scale-105'
                 }`}
                 onClick={() => handleNavClick(item.id)}
               >
                 <item.icon className={`h-5 w-5 transition-all duration-300 ${
-                  currentPage === item.id ? 'text-primary scale-110' : ''
+                  getCurrentPage() === item.id ? 'text-primary scale-110' : ''
                 }`} />
                 <span className={`text-xs font-medium font-arabic transition-all duration-300 ${
-                  currentPage === item.id ? 'font-bold' : ''
+                  getCurrentPage() === item.id ? 'font-bold' : ''
                 }`}>
                   {item.label}
                 </span>

@@ -1,10 +1,11 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import HomePage from '@/components/HomePage';
 import AzkarPage from '@/components/AzkarPage';
 import TasbeehPage from '@/components/TasbeehPage';
 import NamesPage from '@/components/NamesPage';
-import QiblaPage from '@/components/QiblaPage';
+
 import QuranPage from '@/components/QuranPage';
 import DuasPage from '@/components/DuasPage';
 import HadithPage from '@/components/HadithPage';
@@ -15,42 +16,49 @@ import IslamicEducationPage from '@/components/IslamicEducationPage';
 
 const Index = () => {
   const [currentPage, setCurrentPage] = useState('home');
+  const navigate = useNavigate();
+
+  const handlePageChange = (page: string) => {
+    if (page === 'qibla') {
+      navigate('/qibla');
+    } else {
+      setCurrentPage(page);
+    }
+  };
 
   const renderPage = () => {
     switch (currentPage) {
       case 'home':
-        return <HomePage onPageChange={setCurrentPage} />;
+        return <HomePage onPageChange={handlePageChange} />;
       case 'quran':
-        return <QuranPage onPageChange={setCurrentPage} />;
+        return <QuranPage onPageChange={handlePageChange} />;
       case 'prayer-times':
-        return <PrayerTimesPage onPageChange={setCurrentPage} />;
+        return <PrayerTimesPage onPageChange={handlePageChange} />;
       case 'azkar':
-        return <AzkarPage onPageChange={setCurrentPage} />;
+        return <AzkarPage onPageChange={handlePageChange} />;
       case 'more':
-        return <MorePage onPageChange={setCurrentPage} />;
+        return <MorePage onPageChange={handlePageChange} />;
       case 'tasbeeh':
-        return <TasbeehPage onPageChange={setCurrentPage} />;
+        return <TasbeehPage onPageChange={handlePageChange} />;
       case 'names':
-        return <NamesPage onPageChange={setCurrentPage} />;
-      case 'qibla':
-        return <QiblaPage onPageChange={setCurrentPage} />;
+        return <NamesPage onPageChange={handlePageChange} />;
       case 'duas':
-        return <DuasPage onPageChange={setCurrentPage} />;
+        return <DuasPage onPageChange={handlePageChange} />;
       case 'hadith':
-        return <HadithPage onPageChange={setCurrentPage} />;
+        return <HadithPage onPageChange={handlePageChange} />;
       case 'settings':
-        return <SettingsPage onPageChange={setCurrentPage} />;
+        return <SettingsPage onPageChange={handlePageChange} />;
       case 'hijri-calendar':
-        return <IslamicEducationPage onPageChange={setCurrentPage} />;
+        return <IslamicEducationPage onPageChange={handlePageChange} />;
       case 'learning':
-        return <IslamicEducationPage onPageChange={setCurrentPage} />;
+        return <IslamicEducationPage onPageChange={handlePageChange} />;
       default:
-        return <HomePage onPageChange={setCurrentPage} />;
+        return <HomePage onPageChange={handlePageChange} />;
     }
   };
 
   return (
-    <Layout currentPage={currentPage} onPageChange={setCurrentPage}>
+    <Layout currentPage={currentPage} onPageChange={handlePageChange}>
       {renderPage()}
     </Layout>
   );
