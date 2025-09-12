@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, Clock, MapPin, Compass, Navigation, Loader2, AlertCircle, Settings, Bell, Volume2 } from 'lucide-react';
+import { ArrowRight, Clock, MapPin, Compass, Navigation, Loader2, AlertCircle, Settings, Bell, Volume2, VolumeX } from 'lucide-react';
 import { getCurrentLocation, calculateQiblaDirection, calculateDistanceToMecca, type LocationInfo } from '@/lib/prayer-api';
 import { useToast } from '@/hooks/use-toast';
 import { useEnhancedPrayerMonitor } from '@/hooks/use-enhanced-prayer-monitor';
 import EnhancedAdhanSettingsModal from '@/components/EnhancedAdhanSettingsModal';
+import AudioPlayerControls from '@/components/AudioPlayerControls';
+import { MuezzinAudioService } from '@/lib/muezzin-audio-service';
 
 interface PrayerTimesPageProps {
   onPageChange?: (page: string) => void;
@@ -20,6 +22,8 @@ export default function PrayerTimesPage({ onPageChange }: PrayerTimesPageProps) 
   const [loading, setLoading] = useState(true);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [showAdhanSettings, setShowAdhanSettings] = useState(false);
+  const [showAudioControls, setShowAudioControls] = useState(false);
+  const [audioService] = useState(() => MuezzinAudioService.getInstance());
   const { toast } = useToast();
 
   // استخدام Hook محسن لمراقبة أوقات الصلاة مع الأذان
@@ -312,21 +316,57 @@ export default function PrayerTimesPage({ onPageChange }: PrayerTimesPageProps) 
             
             <Button 
               variant="outline" 
-              className="w-full justify-start"
+              className="w-full justify-start app-button"
               onClick={() => setShowAdhanSettings(true)}
             >
-              <Volume2 className="h-4 w-4 ml-2" />
+              <Settings className="h-4 w-4 ml-2" />
               إعدادات الأذان
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              className="w-full justify-start app-button"
+              onClick={() => setShowAudioControls(true)}
+            >
+              {audioService.getSettings().enabled ? (
+                <Volume2 className="h-4 w-4 ml-2" />
+              ) : (
+                <VolumeX className="h-4 w-4 ml-2" />
+              )}
+              التحكم بالصوت
             </Button>
           </div>
         </CardContent>
       </Card>
 
       {/* نافذة إعدادات الأذان */}
-      <EnhancedAdhanSettingsModal
+      <EnhancedAdhanSettingsModal 
         isOpen={showAdhanSettings}
         onClose={() => setShowAdhanSettings(false)}
       />
+
+      {/* نافذة التحكم بالصوت */}
+      {showAudioControls && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="w-full max-w-md">
+            <AudioPlayerControls 
+              onSettingsChange={(settings) => {
+                toast({
+                  title: "تم تحديث إعدادات الصوت",
+                  description: "تم حفظ التغييرات بنجاح"
+                });
+              }}
+            />
+            <Button 
+              onClick={() => setShowAudioControls(false)}
+              className="w-full mt-4"
+              variant="outline"
+            >
+              إغلاق
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

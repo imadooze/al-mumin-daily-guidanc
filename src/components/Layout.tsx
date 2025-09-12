@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Moon, Sun, Home, BookOpen, Clock, Compass, Heart, Menu } from 'lucide-react';
 import { useTranslations } from '@/lib/translations';
+import LanguageSwitcher from './LanguageSwitcher';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -38,7 +39,7 @@ export default function Layout({ children, currentPage = 'home', onPageChange }:
     { id: 'home', label: t.home, icon: Home },
     { id: 'quran', label: t.quran, icon: BookOpen },
     { id: 'prayer-times', label: t.prayer, icon: Clock },
-    { id: 'qibla', label: 'القبلة', icon: Compass },
+    { id: 'qibla', label: t.qibla, icon: Compass },
     { id: 'azkar', label: t.azkar, icon: Heart },
     { id: 'more', label: t.more, icon: Menu },
   ];
@@ -85,9 +86,9 @@ export default function Layout({ children, currentPage = 'home', onPageChange }:
   };
 
   return (
-    <div className="min-h-screen bg-background font-arabic">
+    <div className="min-h-screen bg-background font-arabic language-transition">
       {/* الشريط العلوي المحسن */}
-      <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur-lg supports-[backdrop-filter]:bg-background/80 shadow-islamic-soft">
+      <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur-lg supports-[backdrop-filter]:bg-background/80 shadow-islamic-soft language-transition">
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 islamic-gradient rounded-full flex items-center justify-center shadow-islamic-soft">
@@ -99,18 +100,22 @@ export default function Layout({ children, currentPage = 'home', onPageChange }:
             </div>
           </div>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleDarkMode}
-            className="rounded-full hover:bg-muted/50 transition-all duration-300 hover:scale-105"
-          >
-            {darkMode ? (
-              <Sun className="h-5 w-5 text-primary animate-fade-in" />
-            ) : (
-              <Moon className="h-5 w-5 text-primary animate-fade-in" />
-            )}
-          </Button>
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher variant="button" />
+            
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleDarkMode}
+              className="app-button rounded-full hover:bg-muted/50 transition-all duration-300 hover:scale-105"
+            >
+              {darkMode ? (
+                <Sun className="h-5 w-5 text-primary animate-fade-in" />
+              ) : (
+                <Moon className="h-5 w-5 text-primary animate-fade-in" />
+              )}
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -122,22 +127,20 @@ export default function Layout({ children, currentPage = 'home', onPageChange }:
       </main>
 
       {/* شريط التنقل السفلي المحسن */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-lg border-t border-border supports-[backdrop-filter]:bg-background/90 shadow-islamic">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bottom-nav language-transition">
         <div className="container">
           <div className="flex items-center justify-around py-2">
             {navItems.map((item) => (
               <Button
                 key={item.id}
                 variant="ghost"
-                className={`flex flex-col items-center gap-1 h-auto py-3 px-4 rounded-xl transition-all duration-300 ${
-                  getCurrentPage() === item.id 
-                    ? 'text-primary bg-primary/10 scale-105 shadow-islamic-soft' 
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:scale-105'
+                className={`nav-button language-transition ${
+                  getCurrentPage() === item.id ? 'active' : ''
                 }`}
                 onClick={() => handleNavClick(item.id)}
               >
                 <item.icon className={`h-5 w-5 transition-all duration-300 ${
-                  getCurrentPage() === item.id ? 'text-primary scale-110' : ''
+                  getCurrentPage() === item.id ? 'scale-110' : ''
                 }`} />
                 <span className={`text-xs font-medium font-arabic transition-all duration-300 ${
                   getCurrentPage() === item.id ? 'font-bold' : ''

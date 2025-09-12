@@ -347,4 +347,170 @@
   .btn-islamic:active {
     transform: translateY(0);
   }
+  }
+
+  /* تحسين أنماط التنقل والأزرار للغات المختلفة */
+  .nav-button {
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 16px;
+    min-height: 60px;
+    min-width: 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 8px 12px;
+  }
+
+  .nav-button.active {
+    background: var(--gradient-primary);
+    color: hsl(var(--primary-foreground));
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-islamic);
+  }
+
+  .nav-button:hover {
+    transform: translateY(-1px);
+    background: hsl(var(--muted) / 0.8);
+  }
+
+  .nav-button.active:hover {
+    transform: translateY(-2px);
+  }
+
+  /* تحسين أنماط الأزرار للغات */
+  .app-button {
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: none;
+    outline: none;
+    cursor: pointer;
+    font-weight: 600;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  .app-button:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  .app-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+  }
+
+  /* تنسيق خاص للنصوص العربية والإنجليزية */
+  [dir="rtl"] .nav-button {
+    text-align: center;
+  }
+
+  [dir="ltr"] .nav-button {
+    text-align: center;
+  }
+
+  [dir="rtl"] .app-button {
+    font-family: 'Cairo', 'Segoe UI', sans-serif;
+  }
+
+  [dir="ltr"] .app-button {
+    font-family: 'Segoe UI', 'Roboto', sans-serif;
+  }
+
+  /* أنماط خاصة للتبديل بين اللغات */
+  .language-transition {
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .language-transition * {
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* تحسين شريط التنقل السفلي */
+  .bottom-nav {
+    background: var(--gradient-card);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid hsl(var(--border) / 0.5);
+    box-shadow: 
+      0 -4px 20px hsl(0 0% 0% / 0.1),
+      var(--shadow-islamic);
+  }
+
+  .bottom-nav::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: var(--gradient-primary);
+    opacity: 0.6;
+  }
+
+  /* تأثيرات صوتية بصرية */
+  .audio-playing {
+    animation: pulse-glow 2s infinite;
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% {
+      box-shadow: 0 0 20px hsl(var(--islamic-green) / 0.5);
+    }
+    50% {
+      box-shadow: 0 0 40px hsl(var(--islamic-green) / 0.8);
+    }
+  }
+
+  .audio-visualizer {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .audio-visualizer::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      hsl(var(--islamic-green) / 0.3),
+      transparent
+    );
+    animation: audio-wave 2s infinite;
+  }
+
+  @keyframes audio-wave {
+    0% { left: -100%; }
+    100% { left: 100%; }
+  }
+
+  /* تحسين الاستجابة للأجهزة المختلفة */
+  @media (max-width: 640px) {
+    .nav-button {
+      min-height: 56px;
+      min-width: 56px;
+      gap: 2px;
+      padding: 6px 8px;
+    }
+
+    .bottom-nav {
+      padding: 8px 0;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .nav-button {
+      min-height: 64px;
+      min-width: 80px;
+      gap: 6px;
+      padding: 10px 16px;
+    }
+  }
 }
