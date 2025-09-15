@@ -352,7 +352,7 @@
   /* تحسين أنماط التنقل والأزرار للغات المختلفة */
   .nav-button {
     position: relative;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     border-radius: 20px;
     min-height: 68px;
     min-width: 68px;
@@ -365,6 +365,9 @@
     background: transparent;
     border: none;
     overflow: hidden;
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
   }
 
   .nav-button::before {
@@ -372,24 +375,34 @@
     position: absolute;
     inset: 0;
     border-radius: 20px;
-    background: linear-gradient(135deg, transparent, hsl(var(--muted) / 0.1));
+    background: linear-gradient(135deg, transparent, hsl(var(--muted) / 0.15));
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: all 0.25s ease;
+    z-index: 0;
   }
 
   .nav-button:hover::before {
     opacity: 1;
   }
 
+  .nav-button > * {
+    position: relative;
+    z-index: 1;
+  }
+
   .nav-button.active {
-    background: var(--gradient-primary);
-    color: hsl(var(--primary-foreground));
+    background: var(--gradient-primary) !important;
+    color: hsl(var(--primary-foreground)) !important;
     transform: translateY(-3px) scale(1.05);
     box-shadow: var(--shadow-islamic);
   }
 
   .nav-button.active::before {
     opacity: 0;
+  }
+
+  .nav-button.active > * {
+    color: hsl(var(--primary-foreground)) !important;
   }
 
   .nav-button:hover:not(.active) {

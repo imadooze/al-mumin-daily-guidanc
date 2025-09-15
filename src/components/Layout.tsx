@@ -70,19 +70,28 @@ export default function Layout({ children, currentPage = 'home', onPageChange }:
   }, []);
 
   const handleNavClick = (pageId: string) => {
+    console.log('Navigation clicked:', pageId);
+    
     if (pageId === 'qibla') {
       navigate('/qibla');
     } else if (pageId === 'home') {
       navigate('/');
-    } else if (onPageChange) {
-      onPageChange(pageId);
+    } else {
+      // للصفحات الأخرى، استخدم onPageChange
+      if (onPageChange) {
+        onPageChange(pageId);
+      }
     }
   };
 
-  // تحديد الصفحة الحالية بناءً على المسار
+  // تحديد الصفحة الحالية بناءً على المسار والحالة
   const getCurrentPage = () => {
-    if (location.pathname === '/qibla') return 'qibla';
-    return currentPage;
+    if (location.pathname === '/qibla') {
+      return 'qibla';
+    } else if (location.pathname === '/') {
+      return currentPage || 'home';
+    }
+    return currentPage || 'home';
   };
 
   return (
@@ -130,25 +139,28 @@ export default function Layout({ children, currentPage = 'home', onPageChange }:
       <nav className="fixed bottom-0 left-0 right-0 z-50 bottom-nav safe-area-bottom language-transition">
         <div className="container max-w-md mx-auto">
           <div className="flex items-center justify-around py-3 px-2">
-            {navItems.map((item) => (
-              <Button
-                key={item.id}
-                variant="ghost"
-                className={`nav-button language-transition hover:scale-105 active:scale-95 ${
-                  getCurrentPage() === item.id ? 'active' : ''
-                }`}
-                onClick={() => handleNavClick(item.id)}
-              >
-                <item.icon className={`h-5 w-5 mb-1 transition-all duration-300 ${
-                  getCurrentPage() === item.id ? 'scale-110 text-white' : 'text-primary'
-                }`} />
-                <span className={`text-xs font-medium font-arabic transition-all duration-300 block ${
-                  getCurrentPage() === item.id ? 'font-bold text-white' : 'text-muted-foreground'
-                }`}>
-                  {item.label}
-                </span>
-              </Button>
-            ))}
+            {navItems.map((item) => {
+              const isActive = getCurrentPage() === item.id;
+              return (
+                <Button
+                  key={item.id}
+                  variant="ghost"
+                  className={`nav-button language-transition hover:scale-105 active:scale-95 ${
+                    isActive ? 'active' : ''
+                  }`}
+                  onClick={() => handleNavClick(item.id)}
+                >
+                  <item.icon className={`h-5 w-5 mb-1 transition-all duration-300 ${
+                    isActive ? 'scale-110 text-white' : 'text-primary'
+                  }`} />
+                  <span className={`text-xs font-medium font-arabic transition-all duration-300 block ${
+                    isActive ? 'font-bold text-white' : 'text-muted-foreground'
+                  }`}>
+                    {item.label}
+                  </span>
+                </Button>
+              );
+            })}
           </div>
         </div>
       </nav>

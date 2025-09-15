@@ -19,6 +19,8 @@ const Index = () => {
   const navigate = useNavigate();
 
   const handlePageChange = (page: string) => {
+    console.log('Page change requested:', page);
+    
     if (page === 'qibla') {
       navigate('/qibla');
     } else {
@@ -59,7 +61,9 @@ const Index = () => {
 
   return (
     <Layout currentPage={currentPage} onPageChange={handlePageChange}>
-      {renderPage()}
+      <div key={currentPage} className="animate-fade-in">
+        {renderPage()}
+      </div>
     </Layout>
   );
 };
