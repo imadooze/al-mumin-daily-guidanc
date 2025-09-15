@@ -78,12 +78,12 @@ export function useEnhancedPrayerMonitor(
     
     // تحويل أوقات الصلاة إلى تنسيق موحد
     const prayers: PrayerInfo[] = [
-      { name: 'الفجر', nameEn: 'Fajr', time: timings.Fajr, key: 'fajr' },
-      { name: 'الشروق', nameEn: 'Sunrise', time: timings.Sunrise, key: 'sunrise' },
-      { name: 'الظهر', nameEn: 'Dhuhr', time: timings.Dhuhr, key: 'dhuhr' },
-      { name: 'العصر', nameEn: 'Asr', time: timings.Asr, key: 'asr' },
-      { name: 'المغرب', nameEn: 'Maghrib', time: timings.Maghrib, key: 'maghrib' },
-      { name: 'العشاء', nameEn: 'Isha', time: timings.Isha, key: 'isha' }
+      { name: 'الفجر', nameEn: 'Fajr', time: timings.Fajr.substring(0, 5), key: 'fajr' },
+      { name: 'الشروق', nameEn: 'Sunrise', time: timings.Sunrise.substring(0, 5), key: 'sunrise' },
+      { name: 'الظهر', nameEn: 'Dhuhr', time: timings.Dhuhr.substring(0, 5), key: 'dhuhr' },
+      { name: 'العصر', nameEn: 'Asr', time: timings.Asr.substring(0, 5), key: 'asr' },
+      { name: 'المغرب', nameEn: 'Maghrib', time: timings.Maghrib.substring(0, 5), key: 'maghrib' },
+      { name: 'العشاء', nameEn: 'Isha', time: timings.Isha.substring(0, 5), key: 'isha' }
     ].map(prayer => {
       const [hours, minutes] = prayer.time.split(':').map(Number);
       const prayerTime = new Date();

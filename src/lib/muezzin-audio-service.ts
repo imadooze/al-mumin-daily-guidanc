@@ -33,7 +33,7 @@ export class MuezzinAudioService {
       name: 'Sheikh Ali Mulla',
       arabicName: 'الشيخ علي ملا',
       location: 'الحرم المكي الشريف',
-      audioUrl: 'https://archive.org/download/AdhanMakkah2023/adhan-makkah-fajr.mp3',
+      audioUrl: '/audio/adhan-makkah-1.mp3',
       description: 'أذان الفجر من الحرم المكي',
       isDefault: true
     },
@@ -42,7 +42,7 @@ export class MuezzinAudioService {
       name: 'Sheikh Bandar Baleela',
       arabicName: 'الشيخ بندر بليلة',
       location: 'الحرم المكي الشريف',
-      audioUrl: 'https://archive.org/download/AdhanMakkah2023/adhan-makkah-maghrib.mp3',
+      audioUrl: '/audio/adhan-makkah-2.mp3',
       description: 'أذان المغرب من الحرم المكي'
     },
     {
@@ -50,7 +50,7 @@ export class MuezzinAudioService {
       name: 'Sheikh Hassan Bukhari',
       arabicName: 'الشيخ حسن البخاري',
       location: 'المسجد النبوي الشريف',
-      audioUrl: 'https://archive.org/download/AdhanMadinah2023/adhan-madinah-dhuhr.mp3',
+      audioUrl: '/audio/adhan-madinah-1.mp3',
       description: 'أذان الظهر من المسجد النبوي'
     },
     {
@@ -58,7 +58,7 @@ export class MuezzinAudioService {
       name: 'Traditional Recitation',
       arabicName: 'الطريقة التقليدية',
       location: 'تلاوة كلاسيكية',
-      audioUrl: 'https://archive.org/download/IslamicAdhan/traditional-adhan.mp3',
+      audioUrl: '/audio/adhan-traditional.mp3',
       description: 'الأذان بالطريقة التقليدية'
     },
     {
@@ -66,7 +66,7 @@ export class MuezzinAudioService {
       name: 'Contemporary Style',
       arabicName: 'الأسلوب المعاصر',
       location: 'تلاوة معاصرة',
-      audioUrl: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav',
+      audioUrl: '/audio/adhan-modern.mp3',
       description: 'أذان بالأسلوب المعاصر'
     }
   ];
@@ -154,7 +154,7 @@ export class MuezzinAudioService {
       console.error('فشل في تشغيل الأذان:', error);
       
       // في حالة فشل التشغيل، استخدم صوت احتياطي
-      this.playFallbackAdhan();
+      await this.playFallbackAdhan();
     }
   }
 
@@ -170,10 +170,10 @@ export class MuezzinAudioService {
     });
 
     // في حالة حدوث خطأ
-    this.currentAudio.addEventListener('error', (e) => {
+    this.currentAudio.addEventListener('error', async (e) => {
       console.error('خطأ في تشغيل الأذان:', e);
       this.currentAudio = null;
-      this.playFallbackAdhan();
+      await this.playFallbackAdhan();
     });
 
     // عند التحميل الناجح
@@ -207,23 +207,42 @@ export class MuezzinAudioService {
   }
 
   // تشغيل صوت احتياطي في حالة فشل الصوت الأساسي
-  private playFallbackAdhan(): void {
+  private async playFallbackAdhan(): Promise<void> {
     try {
       console.log('🔄 تشغيل صوت احتياطي للأذان');
       
-      // استخدام Web Audio API لإنتاج نغمة بسيطة
+      // استخدام Web Audio API لإنتاج نغمة بسيطة محسنة
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
+      
+      // نمط نغمات أذان بسيط
+      const notes = [
+        { freq: 440, duration: 0.5 }, // لا
+        { freq: 523, duration: 0.5 }, // دو
+        { freq: 587, duration: 0.5 }, // ري
+        { freq: 523, duration: 1.0 }, // دو
+      ];
+      
+      let currentTime = audioContext.currentTime;
+      
+      for (const note of notes) {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
 
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
 
-      oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-      gainNode.gain.setValueAtTime(this.settings.volume * 0.3, audioContext.currentTime);
+        oscillator.frequency.setValueAtTime(note.freq, currentTime);
+        oscillator.type = 'sine';
+        
+        gainNode.gain.setValueAtTime(0, currentTime);
+        gainNode.gain.linearRampToValueAtTime(this.settings.volume * 0.3, currentTime + 0.1);
+        gainNode.gain.linearRampToValueAtTime(0, currentTime + note.duration);
 
-      oscillator.start();
-      oscillator.stop(audioContext.currentTime + 2);
+        oscillator.start(currentTime);
+        oscillator.stop(currentTime + note.duration);
+        
+        currentTime += note.duration;
+      }
 
     } catch (error) {
       console.error('فشل في تشغيل الصوت الاحتياطي:', error);

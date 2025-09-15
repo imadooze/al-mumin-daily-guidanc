@@ -81,7 +81,7 @@ export default function HomePage({ onPageChange }: HomePageProps) {
       }
 
     } catch (error) {
-      console.error('خطأ في جلب البيانات:', error);
+      console.error('خطأ في جلب البيانات من الإنترنت:', error);
       setLocation('غير متاح');
       setIsOnline(false);
       

@@ -353,31 +353,52 @@
   .nav-button {
     position: relative;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    border-radius: 16px;
-    min-height: 60px;
-    min-width: 60px;
+    border-radius: 20px;
+    min-height: 68px;
+    min-width: 68px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 4px;
-    padding: 8px 12px;
+    gap: 2px;
+    padding: 8px 10px;
+    background: transparent;
+    border: none;
+    overflow: hidden;
+  }
+
+  .nav-button::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 20px;
+    background: linear-gradient(135deg, transparent, hsl(var(--muted) / 0.1));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .nav-button:hover::before {
+    opacity: 1;
   }
 
   .nav-button.active {
     background: var(--gradient-primary);
     color: hsl(var(--primary-foreground));
-    transform: translateY(-2px);
+    transform: translateY(-3px) scale(1.05);
     box-shadow: var(--shadow-islamic);
   }
 
-  .nav-button:hover {
-    transform: translateY(-1px);
-    background: hsl(var(--muted) / 0.8);
+  .nav-button.active::before {
+    opacity: 0;
+  }
+
+  .nav-button:hover:not(.active) {
+    transform: translateY(-1px) scale(1.02);
+    background: hsl(var(--muted) / 0.5);
   }
 
   .nav-button.active:hover {
-    transform: translateY(-2px);
+    transform: translateY(-3px) scale(1.05);
   }
 
   /* تحسين أنماط الأزرار للغات */
@@ -391,6 +412,7 @@
     text-align: center;
     white-space: nowrap;
     overflow: hidden;
+    border-radius: 16px;
   }
 
   .app-button:focus-visible {
@@ -404,11 +426,21 @@
     transform: none !important;
   }
 
-  /* تنسيق خاص للنصوص العربية والإنجليزية */
-  [dir="rtl"] .nav-button {
-    text-align: center;
+  .app-button:hover:not(:disabled) {
+    transform: translateY(-1px) scale(1.02);
   }
 
+  .app-button:active:not(:disabled) {
+    transform: translateY(0) scale(0.98);
+  }
+
+  /* منطقة آمنة للهواتف */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* تنسيق خاص للنصوص العربية والإنجليزية */
+  [dir="rtl"] .nav-button,
   [dir="ltr"] .nav-button {
     text-align: center;
   }
@@ -433,11 +465,12 @@
   /* تحسين شريط التنقل السفلي */
   .bottom-nav {
     background: var(--gradient-card);
-    backdrop-filter: blur(20px);
-    border-top: 1px solid hsl(var(--border) / 0.5);
+    backdrop-filter: blur(25px);
+    border-top: 1px solid hsl(var(--border) / 0.3);
     box-shadow: 
-      0 -4px 20px hsl(0 0% 0% / 0.1),
-      var(--shadow-islamic);
+      0 -8px 32px hsl(0 0% 0% / 0.1),
+      0 -2px 8px hsl(0 0% 0% / 0.05),
+      inset 0 1px 0 hsl(var(--background) / 0.8);
   }
 
   .bottom-nav::before {
@@ -446,9 +479,10 @@
     top: 0;
     left: 0;
     right: 0;
-    height: 1px;
+    height: 2px;
     background: var(--gradient-primary);
-    opacity: 0.6;
+    opacity: 0.8;
+    border-radius: 0 0 1px 1px;
   }
 
   /* تأثيرات صوتية بصرية */
@@ -494,10 +528,30 @@
   /* تحسين الاستجابة للأجهزة المختلفة */
   @media (max-width: 640px) {
     .nav-button {
-      min-height: 56px;
-      min-width: 56px;
+      min-height: 60px;
+      min-width: 60px;
       gap: 2px;
-      padding: 6px 8px;
+      padding: 6px 6px;
+      border-radius: 18px;
+    }
+
+    .bottom-nav {
+      padding: 6px 0;
+    }
+
+    .container {
+      padding-left: 0.5rem;
+      padding-right: 0.5rem;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .nav-button {
+      min-height: 72px;
+      min-width: 72px;
+      gap: 4px;
+      padding: 10px 12px;
+      border-radius: 22px;
     }
 
     .bottom-nav {
@@ -505,11 +559,12 @@
     }
   }
 
-  @media (min-width: 768px) {
+  @media (min-width: 1024px) {
     .nav-button {
-      min-height: 64px;
-      min-width: 80px;
+      min-height: 76px;
+      min-width: 76px;
       gap: 6px;
-      padding: 10px 16px;
+      padding: 12px 16px;
+      border-radius: 24px;
     }
   }
