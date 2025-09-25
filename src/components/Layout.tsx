@@ -1,19 +1,18 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Moon, Sun, Home, BookOpen, Clock, Compass, Heart, Menu } from 'lucide-react';
 import { useTranslations } from '@/lib/translations';
+import { useNavigation, PageId } from '@/hooks/use-navigation';
 import LanguageSwitcher from './LanguageSwitcher';
 
 interface LayoutProps {
   children: React.ReactNode;
-  currentPage?: string;
-  onPageChange?: (page: string) => void;
+  currentPage?: PageId;
+  onPageChange?: (page: PageId) => void;
 }
 
-export default function Layout({ children, currentPage = 'home', onPageChange }: LayoutProps) {
-  const navigate = useNavigate();
-  const location = useLocation();
+export default function Layout({ children, currentPage, onPageChange }: LayoutProps) {
+  const { navigateToPage, getActivePage, isNavigating } = useNavigation();
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('dark-mode');
     return saved ? JSON.parse(saved) : false;
@@ -36,12 +35,12 @@ export default function Layout({ children, currentPage = 'home', onPageChange }:
   };
 
   const navItems = [
-    { id: 'home', label: t.home, icon: Home },
-    { id: 'quran', label: t.quran, icon: BookOpen },
-    { id: 'prayer-times', label: t.prayer, icon: Clock },
-    { id: 'qibla', label: t.qibla, icon: Compass },
-    { id: 'azkar', label: t.azkar, icon: Heart },
-    { id: 'more', label: t.more, icon: Menu },
+    { id: 'home' as PageId, label: t.home, icon: Home },
+    { id: 'quran' as PageId, label: t.quran, icon: BookOpen },
+    { id: 'prayer-times' as PageId, label: t.prayer, icon: Clock },
+    { id: 'qibla' as PageId, label: t.qibla, icon: Compass },
+    { id: 'azkar' as PageId, label: t.azkar, icon: Heart },
+    { id: 'more' as PageId, label: t.more, icon: Menu },
   ];
 
   // تطبيق الإعدادات عند تحميل المكون
@@ -69,36 +68,27 @@ export default function Layout({ children, currentPage = 'home', onPageChange }:
     return () => window.removeEventListener('storage', handleLanguageChange);
   }, []);
 
-  const handleNavClick = (pageId: string) => {
+  // معالجة النقر على التنقل
+  const handleNavClick = (pageId: PageId) => {
+    if (isNavigating) return; // منع النقر المتعدد
+    
     console.log('Navigation clicked:', pageId);
     
-    // إذا كنا في صفحة القبلة ونريد الذهاب لصفحة أخرى، نحتاج للعودة للصفحة الرئيسية أولاً
-    if (location.pathname === '/qibla' && pageId !== 'qibla') {
-      // الانتقال للصفحة الرئيسية مع تحديد الصفحة المطلوبة
-      navigate('/', { state: { targetPage: pageId } });
-      return;
-    }
+    // استخدام دالة التنقل المحسنة
+    navigateToPage(pageId);
     
-    if (pageId === 'qibla') {
-      navigate('/qibla');
-    } else if (pageId === 'home') {
-      navigate('/');
-    } else {
-      // للصفحات الأخرى، استخدم onPageChange
-      if (onPageChange) {
-        onPageChange(pageId);
-      }
+    // إشعار المكون الأب إذا لزم الأمر
+    if (onPageChange) {
+      onPageChange(pageId);
     }
   };
 
-  // تحديد الصفحة الحالية بناءً على المسار والحالة
-  const getCurrentPage = () => {
-    if (location.pathname === '/qibla') {
-      return 'qibla';
-    } else if (location.pathname === '/') {
-      return currentPage || 'home';
+  // تحديد الصفحة النشطة
+  const getActivePageId = (): PageId => {
+    if (currentPage) {
+      return currentPage;
     }
-    return currentPage || 'home';
+    return getActivePage();
   };
 
   return (
@@ -147,13 +137,18 @@ export default function Layout({ children, currentPage = 'home', onPageChange }:
         <div className="container max-w-md mx-auto">
           <div className="flex items-center justify-around py-3 px-2">
             {navItems.map((item) => {
-              const isActive = getCurrentPage() === item.id;
+              const isActive = getActivePageId() === item.id;
+              const isDisabled = isNavigating;
+              
               return (
                 <Button
                   key={item.id}
                   variant="ghost"
-                  className={`nav-button language-transition hover:scale-105 active:scale-95 ${
+                  disabled={isDisabled}
+                  className={`nav-button language-transition transition-all duration-300 ${
                     isActive ? 'active' : ''
+                  } ${
+                    isDisabled ? 'pointer-events-none opacity-50' : 'hover:scale-105 active:scale-95'
                   }`}
                   onClick={() => handleNavClick(item.id)}
                 >

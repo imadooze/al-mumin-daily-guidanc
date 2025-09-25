@@ -1,11 +1,9 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 import Layout from '@/components/Layout';
 import HomePage from '@/components/HomePage';
 import AzkarPage from '@/components/AzkarPage';
 import TasbeehPage from '@/components/TasbeehPage';
 import NamesPage from '@/components/NamesPage';
-
 import QuranPage from '@/components/QuranPage';
 import DuasPage from '@/components/DuasPage';
 import HadithPage from '@/components/HadithPage';
@@ -13,30 +11,14 @@ import PrayerTimesPage from '@/components/PrayerTimesPage';
 import MorePage from '@/components/MorePage';
 import SettingsPage from '@/components/SettingsPage';
 import IslamicEducationPage from '@/components/IslamicEducationPage';
+import { useNavigation, PageId } from '@/hooks/use-navigation';
 
 const Index = () => {
-  const [currentPage, setCurrentPage] = useState('home');
-  const navigate = useNavigate();
-  const location = useLocation();
+  const { currentPage, navigateToPage } = useNavigation();
 
-  // فحص إذا كان هناك صفحة مستهدفة من state
-  useEffect(() => {
-    const state = location.state as { targetPage?: string } | null;
-    if (state?.targetPage) {
-      setCurrentPage(state.targetPage);
-      // مسح state بعد الاستخدام
-      window.history.replaceState({}, document.title);
-    }
-  }, [location.state]);
-
-  const handlePageChange = (page: string) => {
+  const handlePageChange = (page: PageId) => {
     console.log('Page change requested:', page);
-    
-    if (page === 'qibla') {
-      navigate('/qibla');
-    } else {
-      setCurrentPage(page);
-    }
+    navigateToPage(page);
   };
 
   const renderPage = () => {

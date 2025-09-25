@@ -397,21 +397,35 @@
     box-shadow: var(--shadow-islamic);
   }
 
-  .nav-button.active::before {
-    opacity: 0;
+  /* شريط التنقل السفلي المحسن */
+  .nav-button {
+    @apply flex flex-col items-center justify-center p-2 min-h-[60px];
+    @apply rounded-lg relative overflow-hidden;
+    @apply transition-all duration-300 ease-out;
+    @apply border border-transparent;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary/50;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none;
   }
 
-  .nav-button.active > * {
-    color: hsl(var(--primary-foreground)) !important;
+  .nav-button:not(.active):not(:disabled) {
+    @apply hover:bg-muted/30 hover:border-primary/20;
+    @apply hover:shadow-md hover:scale-105 hover:-translate-y-0.5;
   }
 
-  .nav-button:hover:not(.active) {
-    transform: translateY(-1px) scale(1.02);
-    background: hsl(var(--muted) / 0.5);
+  .nav-button.active {
+    @apply islamic-gradient text-white shadow-islamic-glow;
+    @apply border-primary/30 scale-105;
+    @apply before:absolute before:inset-0;
+    @apply before:bg-white/10 before:opacity-0;
+    @apply hover:before:opacity-100 hover:scale-110 hover:-translate-y-1;
+    @apply before:transition-opacity before:duration-300;
   }
 
-  .nav-button.active:hover {
-    transform: translateY(-3px) scale(1.05);
+  .nav-button.active::after {
+    content: '';
+    @apply absolute -top-1 left-1/2 transform -translate-x-1/2;
+    @apply w-6 h-1 bg-white rounded-full;
+    @apply shadow-[0_0_8px_hsl(var(--primary)/0.8)];
   }
 
   /* تحسين أنماط الأزرار للغات */
