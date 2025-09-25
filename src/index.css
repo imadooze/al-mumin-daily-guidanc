@@ -461,23 +461,38 @@
     transform: translateY(0) scale(0.98);
   }
 
-  /* منطقة آمنة للهواتف */
-  .safe-area-bottom {
-    padding-bottom: env(safe-area-inset-bottom);
+  /* رسوم متحركة خاصة للصفحة الرئيسية */
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
   }
 
-  /* تنسيق خاص للنصوص العربية والإنجليزية */
-  [dir="rtl"] .nav-button,
-  [dir="ltr"] .nav-button {
-    text-align: center;
+  @keyframes glow-pulse {
+    0%, 100% { box-shadow: 0 0 20px hsl(var(--primary) / 0.3); }
+    50% { box-shadow: 0 0 40px hsl(var(--primary) / 0.6); }
   }
 
-  [dir="rtl"] .app-button {
-    font-family: 'Cairo', 'Segoe UI', sans-serif;
+  @keyframes pulse-islamic {
+    0%, 100% { 
+      transform: scale(1);
+      box-shadow: 0 0 0 0 hsl(var(--primary) / 0.7);
+    }
+    50% { 
+      transform: scale(1.05);
+      box-shadow: 0 0 0 10px hsl(var(--primary) / 0);
+    }
   }
 
-  [dir="ltr"] .app-button {
-    font-family: 'Segoe UI', 'Roboto', sans-serif;
+  .animate-spin-slow {
+    animation: spin-slow 3s linear infinite;
+  }
+
+  .animate-glow-pulse {
+    animation: glow-pulse 2s ease-in-out infinite;
+  }
+
+  .animate-pulse-islamic {
+    animation: pulse-islamic 2s ease-in-out infinite;
   }
 
   /* أنماط خاصة للتبديل بين اللغات */

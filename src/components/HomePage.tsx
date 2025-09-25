@@ -403,19 +403,19 @@ export default function HomePage({ onPageChange }: HomePageProps) {
             <p className="text-lg font-arabic text-foreground">جاري تحميل البيانات...</p>
             <p className="text-sm text-muted-foreground">الرجاء الانتظار قليلاً</p>
           </div>
-      </div>
+        </div>
 
-      {/* مودال إعدادات الأذان */}
-      <AdhanSettingsModal 
-        isOpen={showAdhanSettings}
-        onClose={() => setShowAdhanSettings(false)}
-      />
-    </div>
-  );
-}
+        {/* مودال إعدادات الأذان */}
+        <AdhanSettingsModal 
+          isOpen={showAdhanSettings}
+          onClose={() => setShowAdhanSettings(false)}
+        />
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-islamic-cream/20 to-background">
+    <div className="min-h-screen bg-gradient-to-br from-background via-islamic-cream/20 to-background overflow-hidden">
       {/* إشعار الأذان المحسن */}
       {showAdhanNotification && (
         <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 max-w-sm w-full mx-4 animate-scale-in">
@@ -432,232 +432,335 @@ export default function HomePage({ onPageChange }: HomePageProps) {
                 {currentAdhanPrayer === 'maghrib' && 'صلاة المغرب'}
                 {currentAdhanPrayer === 'isha' && 'صلاة العشاء'}
               </p>
-              <div className="flex justify-center pt-2">
-                <Button 
-                  onClick={dismissAdhanNotification}
-                  className="bg-white/20 hover:bg-white/30 text-white text-sm px-4 py-2 rounded-xl border border-white/30"
-                  size="sm"
-                >
-                  <span className="font-arabic">إغلاق</span>
-                </Button>
-              </div>
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                onClick={dismissAdhanNotification}
+                className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+              >
+                إغلاق
+              </Button>
             </div>
           </div>
         </div>
       )}
 
-      <div className="space-y-6 p-4 max-w-md mx-auto">
-        {/* هيدر التطبيق مع الترحيب */}
-        <div className="relative overflow-hidden rounded-3xl p-6 islamic-gradient text-white">
-          <div className="absolute inset-0 bg-black/10"></div>
+      {/* Hero Section with Gradient */}
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-primary-glow/5 to-transparent"></div>
+        <div className="relative container mx-auto px-4 py-8">
           
-          {/* زر الإعدادات */}
-          <Button 
-            onClick={handleSettingsClick}
-            className="absolute top-4 left-4 bg-white/20 hover:bg-white/30 border-none p-2 h-auto"
-            variant="ghost"
-          >
-            <Settings className="h-5 w-5 text-white" />
-          </Button>
-
-          {/* زر التحكم في الأذان */}
-          <Button 
-            onClick={toggleAdhan}
-            className="absolute top-4 right-4 bg-white/20 hover:bg-white/30 border-none p-2 h-auto"
-            variant="ghost"
-          >
-            {adhanEnabled ? (
-              <Volume2 className="h-5 w-5 text-white" />
-            ) : (
-              <VolumeX className="h-5 w-5 text-white" />
-            )}
-          </Button>
-
-          <div className="relative z-10 text-center space-y-3">
-            <div className="flex justify-center mb-2">
-              {currentTime.getHours() < 12 ? (
-                <Sunrise className="h-8 w-8 text-white/90" />
-              ) : currentTime.getHours() < 18 ? (
-                <Sun className="h-8 w-8 text-white/90" />
-              ) : (
-                <Moon className="h-8 w-8 text-white/90" />
-              )}
-            </div>
-            <h1 className="text-2xl font-bold font-arabic-display">
-              {greeting.ar}
-            </h1>
-            
-            {/* التاريخ الميلادي والهجري */}
-            <div className="space-y-1">
-              <p className="text-white/90 text-sm">
-                {currentTime.toLocaleDateString('ar-SA', { 
-                  weekday: 'long', 
-                  day: 'numeric',
-                  month: 'long' 
-                })}
-              </p>
-              <p className="text-white/80 text-xs">{hijriDate}</p>
-            </div>
-            
-            <div className="text-xl font-mono bg-white/20 rounded-xl px-3 py-2 inline-block">
-              {currentTime.toLocaleTimeString('ar-SA', { 
-                hour: '2-digit', 
-                minute: '2-digit' 
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* معلومات الموقع والطقس المحسنة */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-white rounded-2xl p-4 border border-border/50 shadow-islamic-soft hover-lift">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 bg-islamic-green/10 rounded-full flex items-center justify-center">
-                <MapPin className="h-4 w-4 text-islamic-green" />
+          {/* Header Section */}
+          <div className="text-center mb-8 space-y-4 animate-fade-in">
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <div className="w-12 h-12 islamic-gradient rounded-full flex items-center justify-center shadow-islamic-soft animate-pulse-islamic">
+                <Star className="h-6 w-6 text-white" />
               </div>
-              <h3 className="text-sm font-bold text-islamic-green font-arabic">الموقع</h3>
-            </div>
-            <p className="text-xs text-muted-foreground font-arabic leading-relaxed">{location}</p>
-          </div>
-          
-          <div className="bg-white rounded-2xl p-4 border border-border/50 shadow-islamic-soft hover-lift">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 bg-islamic-blue/10 rounded-full flex items-center justify-center">
-                <Thermometer className="h-4 w-4 text-islamic-blue" />
+              <div>
+                <h1 className="text-2xl font-bold text-foreground font-arabic-display">
+                  {language === 'english' ? greeting.en : greeting.ar}
+                </h1>
+                <p className="text-sm text-muted-foreground font-arabic">
+                  {language === 'english' ? 'Welcome to your Islamic companion' : 'مرحباً بك في رفيقك الإسلامي'}
+                </p>
               </div>
-              <h3 className="text-sm font-bold text-islamic-blue font-arabic">الطقس</h3>
             </div>
-            <div className="space-y-1">
-              <p className="text-lg font-bold text-foreground">
-                {weather.temp > 0 ? `${weather.temp}°` : '--°'}
-              </p>
-              <p className="text-xs text-muted-foreground font-arabic">
-                {language === 'english' ? weather.condition : weather.conditionAr}
-              </p>
+
+            {/* Status Indicators */}
+            <div className="flex items-center justify-center gap-4 text-xs">
+              <div className="flex items-center gap-1">
+                {isOnline ? (
+                  <Wifi className="h-3 w-3 text-green-500" />
+                ) : (
+                  <WifiOff className="h-3 w-3 text-red-500" />
+                )}
+                <span className="text-muted-foreground">
+                  {isOnline ? 'متصل' : 'غير متصل'}
+                </span>
+              </div>
+              <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
+              <div className="flex items-center gap-1">
+                <Clock className="h-3 w-3 text-primary" />
+                <span className="text-muted-foreground">
+                  {currentTime.toLocaleString('ar-SA', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  })}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* بطاقة الصلاة القادمة */}
-        {nextPrayer && (
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-white to-islamic-cream/30 border border-islamic-green/20 p-4 shadow-lg">
-            <div className="absolute top-0 right-0 w-20 h-20 bg-islamic-green/10 rounded-full -mr-10 -mt-10"></div>
-            <div className="relative z-10">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <p className="text-sm text-muted-foreground mb-1">الصلاة القادمة</p>
-                  <h3 className="text-xl font-bold text-islamic-green font-arabic">{nextPrayer.name}</h3>
-                  <p className="text-lg font-mono text-foreground">{nextPrayer.time}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
+          {/* Prayer Times Hero Card */}
+          <div className="mb-8 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+            <Card className="bg-gradient-primary text-white border-none shadow-islamic-glow overflow-hidden relative">
+              <div className="absolute inset-0 bg-white/5 backdrop-blur-sm"></div>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16"></div>
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-12 -translate-x-12"></div>
+              
+              <CardContent className="relative p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Compass className="h-5 w-5 text-white animate-spin-slow" />
+                    <h2 className="text-lg font-bold font-arabic-display">الصلاة القادمة</h2>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    onClick={refreshAllData}
+                    disabled={loading}
+                    className="text-white hover:bg-white/20 rounded-full"
+                  >
+                    <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                  </Button>
+                </div>
+                
+                <div className="text-center space-y-2">
+                  <h3 className="text-2xl font-bold font-arabic-display">{nextPrayer?.name}</h3>
+                  <p className="text-3xl font-mono font-bold tracking-wider">{nextPrayer?.time}</p>
+                  <p className="text-sm text-white/80 font-arabic">
                     متبقي: {getTimeUntilNextPrayer()}
                   </p>
                 </div>
-                <div className="text-center">
-                  <Clock className="h-8 w-8 text-islamic-green mb-2 mx-auto" />
-                  <Badge className="bg-islamic-green/10 text-islamic-green border-islamic-green/20 text-xs px-2 py-1">
-                    قريباً
-                  </Badge>
+
+                <div className="mt-4 flex items-center justify-center gap-4">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onPageChange?.('prayer-times')}
+                    className="text-white hover:bg-white/20 rounded-full"
+                  >
+                    <Clock className="h-4 w-4 ml-2" />
+                    جميع المواقيت
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={toggleAdhan}
+                    className="text-white hover:bg-white/20 rounded-full"
+                  >
+                    {adhanEnabled ? <Volume2 className="h-4 w-4 ml-2" /> : <VolumeX className="h-4 w-4 ml-2" />}
+                    {adhanEnabled ? 'الأذان مفعل' : 'الأذان مُعطل'}
+                  </Button>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </div>
-        )}
 
-        {/* شريط أوقات الصلاة السريع */}
-        <div className="grid grid-cols-3 gap-2">
-          {prayerTimes.slice(0, 6).map((prayer) => (
-            <div
-              key={prayer.nameEn}
-              className={`p-3 rounded-xl text-center transition-all duration-200 ${
-                prayer.current
-                  ? 'bg-islamic-green text-white shadow-md'
-                  : prayer.passed
-                  ? 'bg-muted/50 text-muted-foreground'
-                  : 'bg-white border border-border hover:border-islamic-green/30'
-              }`}
+          {/* Quick Actions Grid */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            {[
+              { icon: BookOpen, label: 'القرآن الكريم', page: 'quran', gradient: 'from-emerald-500 to-teal-600' },
+              { icon: Heart, label: 'الأذكار', page: 'azkar', gradient: 'from-pink-500 to-rose-600' },
+              { icon: Compass, label: 'القبلة', page: 'qibla', gradient: 'from-blue-500 to-indigo-600' },
+              { icon: Star, label: 'المزيد', page: 'more', gradient: 'from-purple-500 to-violet-600' }
+            ].map((action, index) => (
+              <Card 
+                key={action.page}
+                className="group cursor-pointer border-none shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 animate-fade-in overflow-hidden"
+                style={{ animationDelay: `${0.3 + index * 0.1}s` }}
+                onClick={() => onPageChange?.(action.page)}
+              >
+                <CardContent className="p-4 text-center relative">
+                  <div className={`absolute inset-0 bg-gradient-to-br ${action.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}></div>
+                  <div className="relative">
+                    <div className="w-12 h-12 bg-muted/50 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:bg-primary/20 transition-colors duration-300">
+                      <action.icon className="h-6 w-6 text-primary group-hover:scale-110 transition-transform duration-300" />
+                    </div>
+                    <p className="text-sm font-medium font-arabic text-foreground group-hover:text-primary transition-colors duration-300">
+                      {action.label}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Content Grid */}
+          <div className="grid lg:grid-cols-2 gap-6 mb-8">
+            
+            {/* Weather & Location Card */}
+            <Card className="group hover:shadow-lg transition-all duration-300 animate-fade-in border-border/50" style={{ animationDelay: '0.7s' }}>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg font-arabic-display flex items-center gap-2">
+                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-sky-600 rounded-lg flex items-center justify-center">
+                      <Cloud className="h-4 w-4 text-white" />
+                    </div>
+                    الطقس والموقع
+                  </CardTitle>
+                  <div className="w-8 h-8 bg-muted/50 rounded-lg flex items-center justify-center">
+                    <Thermometer className="h-4 w-4 text-primary" />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-2xl font-bold text-foreground">{Math.round(weather.temp)}°</p>
+                    <p className="text-sm text-muted-foreground font-arabic">
+                      {language === 'english' ? weather.condition : weather.conditionAr}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-foreground flex items-center gap-1">
+                      <MapPin className="h-3 w-3 text-primary" />
+                      {location}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4 pt-3 border-t border-border/50">
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground">الرطوبة</p>
+                    <p className="text-sm font-semibold text-foreground">{weather.humidity}%</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground">الرياح</p>
+                    <p className="text-sm font-semibold text-foreground">{Math.round(weather.windSpeed)} م/ث</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Hijri Date Card */}
+            <Card className="group hover:shadow-lg transition-all duration-300 animate-fade-in border-border/50" style={{ animationDelay: '0.8s' }}>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg font-arabic-display flex items-center gap-2">
+                  <div className="w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg flex items-center justify-center">
+                    <Moon className="h-4 w-4 text-white" />
+                  </div>
+                  التاريخ الهجري
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center space-y-2">
+                  <p className="text-xl font-bold text-foreground font-arabic-display">{hijriDate}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {currentTime.toLocaleDateString('ar-SA', { 
+                      weekday: 'long', 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric' 
+                    })}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Islamic Content Section */}
+          <div className="grid lg:grid-cols-2 gap-6">
+            
+            {/* Verse of the Day */}
+            <Card className="group hover:shadow-lg transition-all duration-300 animate-fade-in border-border/50" style={{ animationDelay: '0.9s' }}>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg font-arabic-display flex items-center gap-2">
+                    <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
+                      <BookOpen className="h-4 w-4 text-white" />
+                    </div>
+                    آية اليوم
+                  </CardTitle>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    onClick={refreshContent}
+                    className="hover:bg-muted/50 rounded-full"
+                  >
+                    <RefreshCw className="h-4 w-4 text-primary" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="relative">
+                  <div className="absolute -top-2 -right-2 text-4xl text-primary/20 font-arabic-display">"</div>
+                  <p className="text-right leading-loose font-arabic text-foreground text-lg">
+                    {currentVerse.text}
+                  </p>
+                  <div className="absolute -bottom-2 -left-2 text-4xl text-primary/20 font-arabic-display rotate-180">"</div>
+                </div>
+                <div className="space-y-2 pt-2 border-t border-border/50">
+                  <p className="text-sm font-semibold text-primary font-arabic">{currentVerse.reference}</p>
+                  {language === 'english' && (
+                    <p className="text-sm text-muted-foreground italic">{currentVerse.translation}</p>
+                  )}
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => onPageChange?.('quran')}
+                    className="w-full justify-center hover:bg-muted/50"
+                  >
+                    اقرأ المزيد من القرآن
+                    <ArrowRight className="h-4 w-4 mr-2" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Hadith of the Day */}
+            <Card className="group hover:shadow-lg transition-all duration-300 animate-fade-in border-border/50" style={{ animationDelay: '1s' }}>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg font-arabic-display flex items-center gap-2">
+                    <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
+                      <Star className="h-4 w-4 text-white" />
+                    </div>
+                    حديث اليوم
+                  </CardTitle>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    onClick={refreshContent}
+                    className="hover:bg-muted/50 rounded-full"
+                  >
+                    <RefreshCw className="h-4 w-4 text-primary" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="relative">
+                  <div className="absolute -top-2 -right-2 text-3xl text-primary/20">💫</div>
+                  <p className="text-right leading-relaxed font-arabic text-foreground">
+                    {currentHadith.text}
+                  </p>
+                </div>
+                <div className="space-y-2 pt-2 border-t border-border/50">
+                  <p className="text-xs text-muted-foreground font-arabic">{currentHadith.narrator}</p>
+                  <p className="text-sm font-semibold text-primary font-arabic">{currentHadith.reference}</p>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => onPageChange?.('hadith')}
+                    className="w-full justify-center hover:bg-muted/50"
+                  >
+                    اقرأ المزيد من الأحاديث
+                    <ArrowRight className="h-4 w-4 mr-2" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Settings Quick Access */}
+          <div className="mt-8 text-center animate-fade-in" style={{ animationDelay: '1.1s' }}>
+            <Button 
+              variant="outline" 
+              onClick={handleSettingsClick}
+              className="rounded-full px-6 hover:bg-muted/50 transition-all duration-300 hover:scale-105"
             >
-              <p className="text-xs font-arabic mb-1">{prayer.name}</p>
-              <p className="text-sm font-mono font-semibold">{prayer.time}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* أزرار التحديث المحسنة */}
-        <div className="flex justify-center gap-3">
-          <Button 
-            onClick={refreshContent}
-            className="bg-gradient-secondary hover:opacity-90 text-white rounded-xl px-4 py-3 flex items-center gap-2 transition-all duration-300 hover:scale-105 shadow-islamic-soft"
-          >
-            <RefreshCw className="h-4 w-4" />
-            <span className="font-arabic text-sm">تحديث المحتوى</span>
-          </Button>
-          
-          <Button 
-            onClick={refreshAllData}
-            className="bg-gradient-primary hover:opacity-90 text-white rounded-xl px-4 py-3 flex items-center gap-2 transition-all duration-300 hover:scale-105 shadow-islamic-soft"
-            disabled={loading}
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            <span className="font-arabic text-sm">تحديث البيانات</span>
-          </Button>
-        </div>
-
-        {/* آية اليوم */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white to-islamic-green/5 border border-islamic-green/20 p-6">
-          <div className="absolute top-0 left-0 w-16 h-16 bg-islamic-green/10 rounded-full -ml-8 -mt-8"></div>
-          <div className="relative z-10 text-center space-y-4">
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <BookOpen className="h-5 w-5 text-islamic-green" />
-              <h3 className="text-lg font-bold text-islamic-green font-arabic">آية اليوم</h3>
-            </div>
-            <div className="text-base font-arabic-display leading-relaxed text-foreground bg-white/50 rounded-xl p-4">
-              "{currentVerse.text}"
-            </div>
-            <div className="space-y-2">
-              <p className="text-sm font-semibold text-islamic-green">
-                {currentVerse.reference}
-              </p>
-              <p className="text-xs text-muted-foreground italic mb-2">
-                {currentVerse.translation}
-              </p>
-              <div className="bg-islamic-green/5 rounded-lg p-3">
-                <p className="text-xs text-foreground font-arabic leading-relaxed">
-                  <span className="font-bold text-islamic-green">التفسير: </span>
-                  {currentVerse.tafsir}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* حديث اليوم */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white to-islamic-blue/5 border border-islamic-blue/20 p-6">
-          <div className="absolute top-0 right-0 w-16 h-16 bg-islamic-blue/10 rounded-full -mr-8 -mt-8"></div>
-          <div className="relative z-10 text-center space-y-4">
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <Star className="h-5 w-5 text-islamic-blue" />
-              <h3 className="text-lg font-bold text-islamic-blue font-arabic">حديث اليوم</h3>
-            </div>
-            <div className="text-sm font-arabic-display leading-relaxed text-foreground bg-white/50 rounded-xl p-4 text-right">
-              {currentHadith.text}
-            </div>
-            <div className="space-y-2">
-              <p className="text-xs text-muted-foreground">
-                {currentHadith.narrator}
-              </p>
-              <p className="text-xs text-islamic-blue font-semibold mb-2">
-                {currentHadith.reference}
-              </p>
-              <div className="bg-islamic-blue/5 rounded-lg p-3">
-                <p className="text-xs text-foreground font-arabic leading-relaxed">
-                  <span className="font-bold text-islamic-blue">الشرح: </span>
-                  {currentHadith.explanation}
-                </p>
-              </div>
-            </div>
+              <Settings className="h-4 w-4 ml-2" />
+              الإعدادات
+            </Button>
           </div>
         </div>
       </div>
+
+      {/* مودال إعدادات الأذان */}
+      <AdhanSettingsModal 
+        isOpen={showAdhanSettings}
+        onClose={() => setShowAdhanSettings(false)}
+      />
     </div>
   );
 }
