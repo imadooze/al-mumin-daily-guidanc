@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import HomePage from '@/components/HomePage';
 import AzkarPage from '@/components/AzkarPage';
@@ -17,6 +17,17 @@ import IslamicEducationPage from '@/components/IslamicEducationPage';
 const Index = () => {
   const [currentPage, setCurrentPage] = useState('home');
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // فحص إذا كان هناك صفحة مستهدفة من state
+  useEffect(() => {
+    const state = location.state as { targetPage?: string } | null;
+    if (state?.targetPage) {
+      setCurrentPage(state.targetPage);
+      // مسح state بعد الاستخدام
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   const handlePageChange = (page: string) => {
     console.log('Page change requested:', page);

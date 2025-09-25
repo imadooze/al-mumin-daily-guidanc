@@ -72,6 +72,13 @@ export default function Layout({ children, currentPage = 'home', onPageChange }:
   const handleNavClick = (pageId: string) => {
     console.log('Navigation clicked:', pageId);
     
+    // إذا كنا في صفحة القبلة ونريد الذهاب لصفحة أخرى، نحتاج للعودة للصفحة الرئيسية أولاً
+    if (location.pathname === '/qibla' && pageId !== 'qibla') {
+      // الانتقال للصفحة الرئيسية مع تحديد الصفحة المطلوبة
+      navigate('/', { state: { targetPage: pageId } });
+      return;
+    }
+    
     if (pageId === 'qibla') {
       navigate('/qibla');
     } else if (pageId === 'home') {
