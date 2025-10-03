@@ -349,83 +349,115 @@
   }
   }
 
-  /* تحسين أنماط التنقل والأزرار للغات المختلفة */
+  /* شريط التنقل السفلي الاحترافي - تصميم موحد ومتناسق */
+  .bottom-nav {
+    @apply bg-background/95 backdrop-blur-xl;
+    @apply border-t border-border/40;
+    @apply shadow-[0_-4px_20px_rgba(0,0,0,0.1)];
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .dark .bottom-nav {
+    @apply shadow-[0_-4px_30px_rgba(0,0,0,0.3)];
+  }
+
+  /* أزرار التنقل - تصميم نظيف واحترافي */
   .nav-button {
-    position: relative;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    border-radius: 20px;
-    min-height: 68px;
-    min-width: 68px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 2px;
-    padding: 8px 10px;
-    background: transparent;
-    border: none;
-    overflow: hidden;
-    cursor: pointer;
+    @apply flex flex-col items-center justify-center gap-1;
+    @apply min-h-[64px] min-w-[60px] flex-1;
+    @apply rounded-2xl relative overflow-hidden;
+    @apply transition-all duration-300 ease-out;
+    @apply bg-transparent border-none;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50;
+    @apply disabled:opacity-40 disabled:cursor-not-allowed;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
   }
 
-  .nav-button::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: 20px;
-    background: linear-gradient(135deg, transparent, hsl(var(--muted) / 0.15));
-    opacity: 0;
-    transition: all 0.25s ease;
-    z-index: 0;
+  /* حالة التمرير العادية */
+  .nav-button:not(.active):not(:disabled):hover {
+    @apply bg-muted/40 scale-[1.02];
   }
 
-  .nav-button:hover::before {
-    opacity: 1;
+  .nav-button:not(.active):not(:disabled):active {
+    @apply scale-95;
   }
 
-  .nav-button > * {
-    position: relative;
-    z-index: 1;
-  }
-
+  /* الحالة النشطة */
   .nav-button.active {
-    background: var(--gradient-primary) !important;
-    color: hsl(var(--primary-foreground)) !important;
-    transform: translateY(-3px) scale(1.05);
-    box-shadow: var(--shadow-islamic);
+    background: var(--gradient-primary);
+    @apply scale-[1.08];
+    box-shadow: 0 8px 24px hsl(var(--primary) / 0.35);
   }
 
-  /* شريط التنقل السفلي المحسن */
-  .nav-button {
-    @apply flex flex-col items-center justify-center p-2 min-h-[60px];
-    @apply rounded-lg relative overflow-hidden;
-    @apply transition-all duration-300 ease-out;
-    @apply border border-transparent;
-    @apply focus:outline-none focus:ring-2 focus:ring-primary/50;
-    @apply disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none;
+  .nav-button.active:hover {
+    @apply scale-[1.1];
+    box-shadow: 0 10px 28px hsl(var(--primary) / 0.45);
   }
 
-  .nav-button:not(.active):not(:disabled) {
-    @apply hover:bg-muted/30 hover:border-primary/20;
-    @apply hover:shadow-md hover:scale-105 hover:-translate-y-0.5;
-  }
-
-  .nav-button.active {
-    @apply islamic-gradient text-white shadow-islamic-glow;
-    @apply border-primary/30 scale-105;
-    @apply before:absolute before:inset-0;
-    @apply before:bg-white/10 before:opacity-0;
-    @apply hover:before:opacity-100 hover:scale-110 hover:-translate-y-1;
-    @apply before:transition-opacity before:duration-300;
-  }
-
-  .nav-button.active::after {
+  /* مؤشر الصفحة النشطة */
+  .nav-button.active::before {
     content: '';
-    @apply absolute -top-1 left-1/2 transform -translate-x-1/2;
-    @apply w-6 h-1 bg-white rounded-full;
-    @apply shadow-[0_0_8px_hsl(var(--primary)/0.8)];
+    @apply absolute top-0 left-1/2 -translate-x-1/2;
+    @apply w-8 h-1 rounded-b-full;
+    @apply bg-white/90;
+    box-shadow: 0 2px 8px hsl(var(--primary) / 0.6);
+  }
+
+  /* أيقونات التنقل */
+  .nav-icon {
+    @apply w-6 h-6 mb-0.5;
+    @apply transition-all duration-300;
+    color: hsl(var(--primary));
+  }
+
+  .nav-icon.active {
+    @apply scale-110;
+    color: hsl(var(--primary-foreground));
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+  }
+
+  /* نصوص التنقل */
+  .nav-label {
+    @apply text-[10px] font-medium leading-none;
+    @apply transition-all duration-300;
+    @apply font-arabic;
+    color: hsl(var(--muted-foreground));
+  }
+
+  .nav-label.active {
+    @apply font-bold;
+    color: hsl(var(--primary-foreground));
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  }
+
+  /* تحسينات للأجهزة المحمولة */
+  @media (max-width: 380px) {
+    .nav-button {
+      @apply min-w-[52px] min-h-[60px] gap-0.5;
+    }
+    
+    .nav-icon {
+      @apply w-5 h-5;
+    }
+    
+    .nav-label {
+      @apply text-[9px];
+    }
+  }
+
+  @media (min-width: 640px) {
+    .nav-button {
+      @apply min-w-[70px] min-h-[68px] gap-1.5;
+    }
+    
+    .nav-icon {
+      @apply w-7 h-7;
+    }
+    
+    .nav-label {
+      @apply text-[11px];
+    }
   }
 
   /* تحسين أنماط الأزرار للغات */

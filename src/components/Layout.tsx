@@ -12,7 +12,7 @@ interface LayoutProps {
 }
 
 export default function Layout({ children, currentPage, onPageChange }: LayoutProps) {
-  const { navigateToPage, getActivePage, isNavigating } = useNavigation();
+  const { navigateToPage, currentPage: navCurrentPage, isNavigating } = useNavigation();
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('dark-mode');
     return saved ? JSON.parse(saved) : false;
@@ -68,28 +68,20 @@ export default function Layout({ children, currentPage, onPageChange }: LayoutPr
     return () => window.removeEventListener('storage', handleLanguageChange);
   }, []);
 
-  // معالجة النقر على التنقل
+  // معالجة النقر على التنقل - تبسيط كامل
   const handleNavClick = (pageId: PageId) => {
-    if (isNavigating) return; // منع النقر المتعدد
-    
-    console.log('Navigation clicked:', pageId);
-    
-    // استخدام دالة التنقل المحسنة
-    navigateToPage(pageId);
-    
-    // إشعار المكون الأب إذا لزم الأمر
-    if (onPageChange) {
-      onPageChange(pageId);
+    if (isNavigating) {
+      console.log('Navigation blocked - already navigating');
+      return;
     }
+    
+    console.log('Nav button clicked:', pageId);
+    navigateToPage(pageId);
+    onPageChange?.(pageId);
   };
 
-  // تحديد الصفحة النشطة
-  const getActivePageId = (): PageId => {
-    if (currentPage) {
-      return currentPage;
-    }
-    return getActivePage();
-  };
+  // تحديد الصفحة النشطة - استخدام قيمة واحدة موثوقة
+  const activePageId = currentPage || navCurrentPage;
 
   return (
     <div className="min-h-screen bg-background font-arabic language-transition">
@@ -132,32 +124,25 @@ export default function Layout({ children, currentPage, onPageChange }: LayoutPr
         </div>
       </main>
 
-      {/* شريط التنقل السفلي المحسن */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bottom-nav safe-area-bottom language-transition">
-        <div className="container max-w-md mx-auto">
-          <div className="flex items-center justify-around py-3 px-2">
+      {/* شريط التنقل السفلي الاحترافي */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bottom-nav language-transition">
+        <div className="container max-w-md mx-auto px-2">
+          <div className="flex items-center justify-around py-2 gap-1">
             {navItems.map((item) => {
-              const isActive = getActivePageId() === item.id;
-              const isDisabled = isNavigating;
+              const isActive = activePageId === item.id;
               
               return (
                 <Button
                   key={item.id}
                   variant="ghost"
-                  disabled={isDisabled}
-                  className={`nav-button language-transition transition-all duration-300 ${
-                    isActive ? 'active' : ''
-                  } ${
-                    isDisabled ? 'pointer-events-none opacity-50' : 'hover:scale-105 active:scale-95'
-                  }`}
+                  disabled={isNavigating}
+                  className={`nav-button ${isActive ? 'active' : ''}`}
                   onClick={() => handleNavClick(item.id)}
+                  aria-label={item.label}
+                  aria-current={isActive ? 'page' : undefined}
                 >
-                  <item.icon className={`h-5 w-5 mb-1 transition-all duration-300 ${
-                    isActive ? 'scale-110 text-white' : 'text-primary'
-                  }`} />
-                  <span className={`text-xs font-medium font-arabic transition-all duration-300 block ${
-                    isActive ? 'font-bold text-white' : 'text-muted-foreground'
-                  }`}>
+                  <item.icon className={`nav-icon ${isActive ? 'active' : ''}`} />
+                  <span className={`nav-label ${isActive ? 'active' : ''}`}>
                     {item.label}
                   </span>
                 </Button>

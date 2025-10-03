@@ -21,84 +21,101 @@ export interface NavigationState {
   isNavigating: boolean;
 }
 
+// مفتاح التخزين المحلي
+const STORAGE_KEY = 'app-current-page';
+
 export function useNavigation() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [currentPage, setCurrentPage] = useState<PageId>('home');
+  
+  // استرجاع الصفحة المحفوظة أو استخدام home كافتراضي
+  const [currentPage, setCurrentPage] = useState<PageId>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return (saved as PageId) || 'home';
+  });
+  
   const [isNavigating, setIsNavigating] = useState(false);
 
-  // تحديد الصفحة الحالية بناءً على المسار
-  const determineCurrentPage = useCallback((): PageId => {
-    const pathname = location.pathname;
-    
-    if (pathname === '/qibla') {
-      return 'qibla';
-    } else if (pathname === '/') {
-      // في الصفحة الرئيسية، استخدم الصفحة المحفوظة
-      return currentPage;
-    }
-    
-    return 'home';
-  }, [location.pathname, currentPage]);
+  // حفظ الصفحة الحالية عند تغييرها
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, currentPage);
+  }, [currentPage]);
 
-  // معالجة state المُمرر من التنقل
+  // معالجة state المُمرر من التنقل (للعودة من صفحة القبلة)
   useEffect(() => {
     const state = location.state as { targetPage?: PageId } | null;
     if (state?.targetPage) {
       setCurrentPage(state.targetPage);
-      // مسح state لتجنب المشاكل
-      window.history.replaceState(null, '', location.pathname);
+      // مسح state بعد الاستخدام
+      window.history.replaceState({}, document.title);
     }
-  }, [location.state, location.pathname]);
+  }, [location.state]);
 
-  // تحديث الصفحة الحالية عند تغيير المسار
+  // تحديث الصفحة عند العودة من مسار القبلة
   useEffect(() => {
-    const newPage = determineCurrentPage();
-    if (newPage !== currentPage && location.pathname !== '/') {
-      setCurrentPage(newPage);
+    if (location.pathname === '/' && !location.state) {
+      // نحن في الصفحة الرئيسية، استخدم الصفحة المحفوظة
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved && saved !== currentPage) {
+        setCurrentPage(saved as PageId);
+      }
+    } else if (location.pathname === '/qibla' && currentPage !== 'qibla') {
+      setCurrentPage('qibla');
     }
-  }, [location.pathname, determineCurrentPage, currentPage]);
+  }, [location.pathname]);
 
   // دالة التنقل الرئيسية
   const navigateToPage = useCallback((pageId: PageId) => {
-    if (isNavigating) return; // منع التنقل المزدوج
+    // منع التنقل المزدوج
+    if (isNavigating) {
+      console.log('Navigation in progress, ignoring click');
+      return;
+    }
+    
+    // إذا كنا بالفعل في نفس الصفحة، لا داعي للتنقل
+    if (pageId === currentPage && location.pathname !== '/qibla') {
+      console.log('Already on page:', pageId);
+      return;
+    }
     
     setIsNavigating(true);
+    console.log('Navigating to:', pageId);
     
     try {
       if (pageId === 'qibla') {
         // التنقل لصفحة القبلة المنفصلة
+        setCurrentPage('qibla');
         navigate('/qibla');
-      } else if (pageId === 'home') {
-        // التنقل للصفحة الرئيسية
-        setCurrentPage('home');
-        if (location.pathname !== '/') {
-          navigate('/');
-        }
       } else {
-        // التنقل للصفحات الداخلية
+        // تحديث الصفحة الحالية
+        setCurrentPage(pageId);
+        
+        // إذا كنا في صفحة القبلة، نحتاج للعودة للرئيسية
         if (location.pathname === '/qibla') {
-          // إذا كنا في صفحة القبلة، انتقل للرئيسية مع الصفحة المطلوبة
           navigate('/', { state: { targetPage: pageId } });
-        } else {
-          // تحديث الصفحة مباشرة
-          setCurrentPage(pageId);
         }
       }
+    } catch (error) {
+      console.error('Navigation error:', error);
     } finally {
-      setTimeout(() => setIsNavigating(false), 100);
+      // إعادة تفعيل التنقل بعد فترة قصيرة
+      setTimeout(() => {
+        setIsNavigating(false);
+      }, 300);
     }
-  }, [navigate, location.pathname, isNavigating]);
+  }, [currentPage, isNavigating, navigate, location.pathname]);
 
-  // الحصول على الصفحة الحالية النشطة
+  // الحصول على الصفحة النشطة (للتمييز في UI)
   const getActivePage = useCallback((): PageId => {
-    return determineCurrentPage();
-  }, [determineCurrentPage]);
+    if (location.pathname === '/qibla') {
+      return 'qibla';
+    }
+    return currentPage;
+  }, [currentPage, location.pathname]);
 
   return {
-    currentPage,
+    currentPage: getActivePage(),
     navigateToPage,
-    getActivePage,
     isNavigating,
     location
   };
